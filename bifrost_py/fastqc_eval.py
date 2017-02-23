@@ -26,6 +26,21 @@ from filetypes import SeqFileName
 
 
 class FastqcSumFile(SeqFileName):
+    passvalues = ["PASS", "WARN", "FAIL"]
+
+    properties = ['Basic Statistics',
+                  'Per base sequence quality',
+                  'Per tile sequence quality',
+                  'Per sequence quality scores',
+                  'Per base sequence content',
+                  'Per sequence GC content',
+                  'Per base N content',
+                  'Sequence Length Distribution',
+                  'Sequence Duplication Levels',
+                  'Overrepresented sequences',
+                  'Adapter Content',
+                  'Kmer Content']
+
     def __init__(self, name, data):
         super().__init__(name)
         self.passfail = self.parse_fastqc_summary(data)
@@ -96,7 +111,10 @@ def process_file_sets(sorted_files):
     output = ""
     for lane in sorted_files:
         for pair in sorted_files[lane]:
+            output += lane + " " + pair + '\n'
+            output += "Property\t" + "\t".join(FastqcSumFile.passvalues) + "\n"
             output += create_stats(sorted_files[lane][pair])
+            output += "\n"
     return output
 
 
@@ -123,36 +141,42 @@ def get_bad_files(content_dict):
 
     mostfailwarns = max(failwarnfiles)
     output += "All files with max count of fails and warns, here: {}\n".format(mostfailwarns)
-    output += "\n".join([x.filename for x in failwarnfiles[mostfailwarns]])
+    output += "\n".join([x.filename for x in failwarnfiles[mostfailwarns]]) + "\n"
 
     return output
 
 
 def create_stats(file_set):
-    entry = file_set[0]
-    properties = entry.passfail.keys()
+    properties = FastqcSumFile.properties
     property_count = {key: {} for key in properties}
+    for prop in property_count:
+        property_count[prop] = {key: 0 for key in FastqcSumFile.passvalues}
     for entry in file_set:
         for prop in properties:
             passvalue = entry.passfail[prop]
-            if not passvalue in property_count[prop]:
-                property_count[prop][passvalue] = 0
             property_count[prop][passvalue] += 1
 
     output = ""
+    for prop in property_count:
+        output += prop
+        for value in FastqcSumFile.passvalues:
+            output += "\t" + str(property_count[prop][value])
+        output += "\n"
 
-
+    return output
 
 def write_output(summary, outputfile):
-    pass
+    fo = open(outputfile, "w")
+    fo.write(summary)
+    fo.close()
 
 
 def main(directory, outputfile):
     content_dict = get_summary_filecontents(directory)
-    output = get_bad_files(content_dict)
     sorted_files = sort_files(content_dict)
-    summary = process_file_sets(sorted_files)
-    write_output(summary, outputfile)
+    output = process_file_sets(sorted_files)
+    output += get_bad_files(content_dict)
+    write_output(output, outputfile)
 
 
 if __name__ == "__main__":
