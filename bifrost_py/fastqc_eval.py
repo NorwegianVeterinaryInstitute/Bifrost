@@ -24,10 +24,20 @@ from filetypes import SeqFileName
 #     parse file, put contents into dict
 # summarize dictionary
 
-class FastqcSummaryFile(SeqFileName):
+
+class FastqcSumFile(SeqFileName):
     def __init__(self, name, data):
         super().__init__(name)
         self.passfail = self.parse_fastqc_summary(data)
+        self.warn = self.get_val_count("WARN")
+        self.fail = self.get_val_count("FAIL")
+
+    def get_val_count(self, val):
+        valcount = 0
+        for prop in self.passfail:
+            if self.passfail[prop] == val:
+                valcount += 1
+        return valcount
 
     @staticmethod
     def parse_fastqc_summary(data):
@@ -49,38 +59,100 @@ class FastqcSummaryFile(SeqFileName):
 
 
 def get_summary_filecontents(directory):
-    fastqc_sumfile_dict = {}
+    fastqc_sum_file_dict = {}
     for path, dirs, files in os.walk(directory):
         for filename in files:
             if filename.endswith(".zip"):
                 fullname = os.path.join(path, filename)
-                archivename = filename.rstrip(".zip")
-                summary_name = os.path.join(archivename, "summary.txt")
+                archive_name = filename.rstrip(".zip")
+                summary_name = os.path.join(archive_name, "summary.txt")
                 with zipfile.ZipFile(fullname) as zf:
                     try:
                         data =zf.read(summary_name)
                     except KeyError:
                         print("ERROR: did not find summary.txt in zip file")
                 data = data.decode("utf-8")
-                fastqc_sumfile_dict[archivename] = FastqcSummaryFile(filename, data)
-    return fastqc_sumfile_dict
+                fastqc_sum_file_dict[archive_name] = FastqcSumFile(filename, data)
+    return fastqc_sum_file_dict
+
 
 def sort_files(fastqc_sumfile_dict):
-    pairs = {fastqc_sumfile_dict[key].pairnumber \
-             for key in fastqc_sumfile_dict.keys()}
+    sorted_files = {}
+
+    for entry in fastqc_sumfile_dict:
+        fastqc_sumfile = fastqc_sumfile_dict[entry]
+        lane = fastqc_sumfile.lane
+        pair = fastqc_sumfile.pairnumber
+        if not lane in sorted_files:
+            sorted_files[lane] = {}
+        if not pair in sorted_files[lane]:
+           sorted_files[lane][pair] = []
+        sorted_files[lane][pair].append(fastqc_sumfile)
+
+    return sorted_files
+
+
+def process_file_sets(sorted_files):
+    output = ""
+    for lane in sorted_files:
+        for pair in sorted_files[lane]:
+            output += create_stats(sorted_files[lane][pair])
+    return output
+
+
+def get_bad_files(content_dict):
+    failfiles = {}
+    for entry in content_dict:
+        fastqc_sum_file = content_dict[entry]
+        if fastqc_sum_file.fail not in failfiles:
+            failfiles[fastqc_sum_file.fail] = []
+        failfiles[fastqc_sum_file.fail].append(fastqc_sum_file)
+
+    failwarnfiles = {}
+    for entry in content_dict:
+        fastqc_sum_file = content_dict[entry]
+        failwarn = fastqc_sum_file.warn + fastqc_sum_file.fail
+        if failwarn not in failwarnfiles:
+            failwarnfiles[failwarn] = []
+        failwarnfiles[failwarn].append(fastqc_sum_file)
+
+    mostfails = max(failfiles)
+    output = "All files with max count of fails, here: {}\n".format(mostfails)
+    output += "\n".join([x.filename for x in failfiles[mostfails]])
+    output += "\n\n"
+
+    mostfailwarns = max(failwarnfiles)
+    output += "All files with max count of fails and warns, here: {}\n".format(mostfailwarns)
+    output += "\n".join([x.filename for x in failwarnfiles[mostfailwarns]])
+
+    return output
+
+
+def create_stats(file_set):
+    entry = file_set[0]
+    properties = entry.passfail.keys()
+    property_count = {key: {} for key in properties}
+    for entry in file_set:
+        for prop in properties:
+            passvalue = entry.passfail[prop]
+            if not passvalue in property_count[prop]:
+                property_count[prop][passvalue] = 0
+            property_count[prop][passvalue] += 1
+
+    output = ""
 
 
 
-def create_stats(content_dict):
+def write_output(summary, outputfile):
     pass
 
-def write_output(summary, output):
-    pass
 
-def main(directory, output):
+def main(directory, outputfile):
     content_dict = get_summary_filecontents(directory)
-    summary = create_stats(content_dict)
-    write_output(summary, output)
+    output = get_bad_files(content_dict)
+    sorted_files = sort_files(content_dict)
+    summary = process_file_sets(sorted_files)
+    write_output(summary, outputfile)
 
 
 if __name__ == "__main__":
