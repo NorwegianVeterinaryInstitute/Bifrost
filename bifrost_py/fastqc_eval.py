@@ -75,8 +75,10 @@ class FastqcSumFile(SeqFileName):
 
 def get_summary_filecontents(directory):
     fastqc_sum_file_dict = {}
-    for path, dirs, files in os.walk(directory):
+    for path, dirs, files in os.walk(directory, followlinks=True):
+        print(files)
         for filename in files:
+            print("walk2", filename)
             if filename.endswith(".zip"):
                 fullname = os.path.join(path, filename)
                 archive_name = filename.rstrip(".zip")
@@ -165,6 +167,7 @@ def create_stats(file_set):
 
     return output
 
+
 def write_output(summary, outputfile):
     fo = open(outputfile, "w")
     fo.write(summary)
@@ -173,19 +176,25 @@ def write_output(summary, outputfile):
 
 def main(directory, outputfile):
     content_dict = get_summary_filecontents(directory)
+    #assert content_dict, "fastqc files not found"
     sorted_files = sort_files(content_dict)
     output = process_file_sets(sorted_files)
     output += get_bad_files(content_dict)
     write_output(output, outputfile)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--directory", metavar="DIRECTORY",
-                        help="Directory containing directories with " +
-                             "fastq zip files in them")
-    parser.add_argument("-o", "--output", metavar="STRING",
-                        help="output summary results file name")
-    args = parser.parse_args()
+if __name__ == '__main__':
+    if __name__ == "__main__":
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-d", "--directory", metavar="DIRECTORY",
+                            help="Directory containing directories with " +
+                                 "fastq zip files in them")
+        parser.add_argument("-o", "--output", metavar="STRING",
+                            help="output summary results file name")
+        args = parser.parse_args()
 
-    main(args.directory, args.output)
+        main(args.directory, args.output)
+
+
+# TODO: I neeed to figure out if my script actually works with nested dirs, i.e
+# what happens when my fastqc files are packed inside an enclosing folder

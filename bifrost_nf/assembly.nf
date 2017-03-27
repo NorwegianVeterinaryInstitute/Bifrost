@@ -3,35 +3,7 @@
 // Adapted from https://github.com/cdeanj/nextflow-tychus
 // should put all of these on top into a config file.
 
-// General configuration variables
-params.pwd = "$PWD"
-params.output = "assembly_output"
-params.help = false
-params.read_pairs = "short/*R{1,2}_001.short.fastq.gz"
-params.out_dir = "" + params.output
-params.threads = 1
 
-threads = params.threads
-
-// Trimmomatic configuration variables
-params.leading = 3
-params.trailing = 3
-params.slidingwindow = "4:15"
-params.minlen = 36
-params.adapters = "TruSeq3-PE.fa"
-
-leading = params.leading
-trailing = params.trailing
-slidingwindow = params.slidingwindow
-minlen = params.minlen
-adapters = params.adapters
-
-// Prokka configuration variables
-params.genus = ""
-params.species = ""
-
-genus = params.genus
-species = params.species
 
 // Display help menu
 if(params.help) {
