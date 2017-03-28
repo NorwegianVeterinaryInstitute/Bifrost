@@ -4,7 +4,6 @@
 // should put all of these on top into a config file.
 
 
-
 // Display help menu
 if(params.help) {
 	log.info ''
