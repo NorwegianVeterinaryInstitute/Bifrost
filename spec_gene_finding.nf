@@ -5,14 +5,30 @@
 * and virulence.
 */
 
+version = 0.20170406
+
+log.info "================================================="
+log.info " Specific gene finding with Ariba v${version}"
+log.info "================================================="
+log.info "Reads                   : ${params.reads}"
+log.info "#files in read set      : ${params.setsize}"
+log.info "MLST Scheme used        : ${params.mlst_scheme}"
+log.info "AMR database            : ${params.amr_db}"
+log.info "Virulence db            : ${params.vir_db}"
+log.info "Results can be found in : ${params.out_dir}"
+log.info "================================================="
+log.info ""
+
 
 // First, define the input data that go into input channels
 Channel
-    .fromFilePairs( params.reads )
+    .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
     .into{ read_pairs_mlst; read_pairs_amr; read_pairs_vir }
 
-// The following two processes are for MLST finding
+// The following three processes are for MLST finding
+
+// Download database database
 process run_ariba_mlst_prep {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
@@ -24,6 +40,7 @@ process run_ariba_mlst_prep {
     """
 }
 
+// Run ariba on each dataset
 process run_ariba_mlst_pred {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
@@ -39,6 +56,24 @@ process run_ariba_mlst_pred {
 
     """
 }
+
+// Summarize MLST results TODO: figure out how to flatten the dirs
+/*process run_ariba_mlst_pred {
+*    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+*
+*    input:
+*    file(pair_id_mlst) from pair_id_mlst
+*
+*    output:
+*    file "mlst_summarized_results.tsv" into mlst_summarized
+*
+*    """
+*    ariba summary mlst_summarized_results.tsv out.run1/report1.tsv out.run2/report2.tsv out.run3/report3.tsv
+*
+*    """
+*}
+
+
 
 // These two processes are for AMR prediction
 process run_ariba_amr_prep {
