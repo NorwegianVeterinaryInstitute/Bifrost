@@ -24,7 +24,26 @@ log.info ""
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .into{ read_pairs_mlst; read_pairs_amr; read_pairs_vir }
+    .into{ read_pairs }// _mlst; read_pairs_amr; read_pairs_vir }
+
+
+// if there are more than two data files, we need to cat them together
+// because ariba does not permit us to run with more than two files
+process group_data {
+    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+
+    input:
+    set pair_id, file(reads) from read_pairs
+
+    output:
+    file 
+
+
+
+
+}
+
+
 
 // The following three processes are for MLST finding
 
