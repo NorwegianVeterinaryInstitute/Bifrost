@@ -5,7 +5,7 @@
 * and virulence.
 */
 
-version = 0.20170406
+version = 0.20170413
 
 log.info "================================================="
 log.info " Specific gene finding with Ariba v${version}"
@@ -150,34 +150,51 @@ process run_ariba_amr_summarize {
     """
 }
 
+//  These three processes are for virulence prediction
+process run_ariba_vir_prep {
+    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
 
-/*
-*  These two processes are for virulence
-*process run_ariba_vir_prep {
-*    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
-*
-*    output:
-*    file "out_vir_prepareref" into out_vir_prepareref
-*
-*    """
-*    ariba getref ${params.vir_db} vir_db
-*    ariba prepareref -f vir_db.fa -m vir_db.tsv out_vir_prepareref
-*    """
-*}
-*
-*process run_ariba_vir_pred {
-*    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
-*
-*    input:
-*    set pair_id, file(reads) from read_pairs_vir
-*    file "out_vir_prepareref" from out_vir_prepareref
-*
-*    output:
-*    file "${pair_id}" into pair_id_vir
-*
-*    """
-*    ariba run out_vir_prepareref ${reads} ${pair_id}
-*
-*    """
-*}
-*/
+    output:
+    file "db_vir_prepareref" into db_vir_prepareref
+
+    """
+    ariba getref ${params.vir_db} vir_db
+    ariba prepareref -f vir_db.fa -m vir_db.tsv db_vir_prepareref
+    """
+}
+
+process run_ariba_amr_pred {
+    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+
+    input:
+    file pair_id from read_pairs_vir
+    file "db_vir_prepareref" from db_vir_prepareref
+
+    output:
+    file "${pair_id}_vir_report.tsv" into pair_id_vir_tsv
+    file "${pair_id}_ariba" into pair_id_vir_aribadir
+
+
+    """
+    ariba run db_vir_prepareref ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
+    cp ${pair_id}_ariba/report.tsv ${pair_id}_vir_report.tsv
+
+    """
+}
+
+// Summarize virulence results
+process run_ariba_vir_summarize {
+    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+
+    input:
+    file pair_id_vir_tsv from pair_id_vir_tsv.collect()
+
+    output:
+    file "vir_summarized*" into vir_summarized
+
+    """
+    ariba summary vir_summarized ${pair_id_vir_tsv}
+    """
+}
+
+
