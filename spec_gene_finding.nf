@@ -64,6 +64,7 @@ process run_ariba_mlst_prep {
 }
 
 // Run ariba on each dataset
+
 process run_ariba_mlst_pred {
     //tag {$pair_id}
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
@@ -78,7 +79,8 @@ process run_ariba_mlst_pred {
 
     """
     ariba run mlst_db/ref_db ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
-    echo -e ${pair_id} `tail -1 ${pair_id}_ariba/mlst_report.tsv` > ${pair_id}_mlst_report.tsv
+    echo -e "header\t" \$(head -1 ${pair_id}_ariba/mlst_report.tsv) > ${pair_id}_mlst_report.tsv
+    echo -e "${pair_id}\t" \$(tail -1 ${pair_id}_ariba/mlst_report.tsv) >> ${pair_id}_mlst_report.tsv
     """
 }
 
@@ -93,7 +95,9 @@ process run_ariba_mlst_summarize {
     file "mlst_summarized_results.tsv" into mlst_summarized
 
     """
-    cat ${pair_id_mlst_tsv} >> mlst_summarized_results.tsv
+    cat ${pair_id_mlst_tsv} >> mlst_summarized_results_tmp.tsv
+    head -1 mlst_summarized_results_tmp.tsv > mlst_summarized_results.tsv
+    cat mlst_summarized_results_tmp.tsv | grep -v "ST" >> mlst_summarized_results.tsv
     """
 }
 
