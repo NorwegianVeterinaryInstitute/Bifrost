@@ -73,11 +73,12 @@ process run_ariba_mlst_pred {
     file "mlst_db" from mlst_db
 
     output:
-    file "${pair_id}_ariba" into pair_id_mlst
+    file "${pair_id}_mlst_report.tsv" into pair_id_mlst_tsv
+    file "${pair_id}_ariba" into pair_id_mlst_aribadir
 
     """
     ariba run mlst_db/ref_db ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
-    echo -e ${pair_id} `tail -1 ${pair_id}/mlst_report.tsv` > ${pair_id}/${pair_id}_mlst_report.tsv
+    echo -e ${pair_id} `tail -1 ${pair_id}_ariba/mlst_report.tsv` > ${pair_id}_mlst_report.tsv
     """
 }
 
@@ -86,13 +87,13 @@ process run_ariba_mlst_summarize {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
     input:
-    file "${pair_id_mlst}_ariba/${pair_id_mlst}_mlst_report.tsv" from pair_id_mlst.collect()
+    file pair_id_mlst_tsv from pair_id_mlst_tsv.collect()
 
     output:
     file "mlst_summarized_results.tsv" into mlst_summarized
 
     """
-    cat ${pair_id_mlst}_ariba/${pair_id_mlst}_mlst_report.tsv >> mlst_summarized_results.tsv
+    cat ${pair_id_mlst_tsv} >> mlst_summarized_results.tsv
     """
 }
 
