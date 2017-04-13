@@ -31,7 +31,7 @@ Channel
 // because ariba does not permit us to run with more than two files
 
 process collate_data {
-    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    publishDir params.out_dir + "/" + params.raw_data, mode: 'copy'
 
     input:
     set pair_id, file(reads) from read_pairs
@@ -84,7 +84,7 @@ process run_ariba_mlst_pred {
     """
 }
 
-// Summarize MLST results TODO - get headers into the file
+// Summarize MLST results
 process run_ariba_mlst_summarize {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
@@ -103,37 +103,55 @@ process run_ariba_mlst_summarize {
 
 
 
+//  These three processes are for AMR prediction
+process run_ariba_amr_prep {
+    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+
+    output:
+    file "db_amr_prepareref" into db_amr_prepareref
+
+    """
+    ariba getref ${params.amr_db} amr_db
+    ariba prepareref -f amr_db.fa -m amr_db.tsv db_amr_prepareref
+    """
+}
+
+process run_ariba_amr_pred {
+    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+
+    input:
+    file pair_id from read_pairs_amr
+    file "db_amr_prepareref" from db_amr_prepareref
+
+    output:
+    file "${pair_id}_amr_report.tsv" into pair_id_amr_tsv
+    file "${pair_id}_ariba" into pair_id_amr_aribadir
+
+
+    """
+    ariba run db_amr_prepareref ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
+    cp ${pair_id}_ariba/report.tsv ${pair_id}_amr_report.tsv
+
+    """
+}
+
+// Summarize AMR results
+process run_ariba_amr_summarize {
+    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+
+    input:
+    file pair_id_amr_tsv from pair_id_amr_tsv.collect()
+
+    output:
+    file "amr_summarized*" into amr_summarized
+
+    """
+    ariba summary amr_summarized ${pair_id_amr_tsv}
+    """
+}
+
+
 /*
-*  These two processes are for AMR prediction
-*process run_ariba_amr_prep {
-*    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
-*
-*    output:
-*    file "out_amr_prepareref" into out_amr_prepareref
-*
-*    """
-*    ariba getref ${params.amr_db} amr_db
-*    ariba prepareref -f amr_db.fa -m amr_db.tsv out_amr_prepareref
-*    """
-*}
-*
-*process run_ariba_amr_pred {
-*    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
-*
-*    input:
-*    set pair_id, file(reads) from read_pairs_amr
-*    file "out_amr_prepareref" from out_amr_prepareref
-*
-*    output:
-*    file "${pair_id}" into pair_id_amr
-*
-*    """
-*    ariba run out_amr_prepareref ${reads} ${pair_id}
-*
-*    """
-*}
-*
-*
 *  These two processes are for virulence
 *process run_ariba_vir_prep {
 *    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
