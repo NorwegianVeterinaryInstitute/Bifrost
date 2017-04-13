@@ -37,11 +37,14 @@ process collate_data {
     set pair_id, file(reads) from read_pairs
 
     output:
-    set pair_id, file("${pair_id}_R{1,2}${params.file_ending}") into read_pairs_mlst, read_pairs_amr, read_pairs_vir
+    //set pair_id, file("${pair_id}_R{1,2}${params.file_ending}") into read_pairs_mlst, read_pairs_amr, read_pairs_vir
+    file pair_id into read_pairs_mlst, read_pairs_amr, read_pairs_vir
+
 
     """
-    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_R1${params.file_ending}
-    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_R2${params.file_ending}
+    mkdir ${pair_id}
+    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}/${pair_id}_R1${params.file_ending}
+    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}/${pair_id}_R2${params.file_ending}
     """
 }
 
@@ -62,19 +65,19 @@ process run_ariba_mlst_prep {
 
 // Run ariba on each dataset
 process run_ariba_mlst_pred {
-    tag {$pair_id}
+    //tag {$pair_id}
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
     input:
-    set pair_id, file(reads) from read_pairs_mlst
+    file pair_id from read_pairs_mlst
     file "mlst_db" from mlst_db
 
     output:
-    file "${pair_id}_mlst_report.tsv" into pair_id_mlst
+    file "${pair_id}_ariba" into pair_id_mlst
 
     """
-    ariba run mlst_db/ref_db ${reads} ${pair_id} > ariba.out 2>&1
-    echo -e ${pair_id} `tail -1 ${pair_id}/mlst_report.tsv` > ${pair_id}_mlst_report.tsv
+    ariba run mlst_db/ref_db ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
+    echo -e ${pair_id} `tail -1 ${pair_id}/mlst_report.tsv` > ${pair_id}/${pair_id}_mlst_report.tsv
     """
 }
 
@@ -83,13 +86,13 @@ process run_ariba_mlst_summarize {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
 
     input:
-    file pair_id_mlst from pair_id_mlst.collect()
+    file "${pair_id_mlst}_ariba/${pair_id_mlst}_mlst_report.tsv" from pair_id_mlst.collect()
 
     output:
     file "mlst_summarized_results.tsv" into mlst_summarized
 
     """
-    cat ${pair_id_mlst} >> mlst_summarized_results.tsv
+    cat ${pair_id_mlst}_ariba/${pair_id_mlst}_mlst_report.tsv >> mlst_summarized_results.tsv
     """
 }
 
