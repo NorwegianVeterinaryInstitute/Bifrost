@@ -5,7 +5,7 @@
 * and virulence.
 */
 
-version = 0.20170413
+version = 0.20170415
 
 log.info "================================================="
 log.info " Specific gene finding with Ariba v${version}"
@@ -18,6 +18,18 @@ log.info "Virulence db            : ${params.vir_db}"
 log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
+
+metadatafile = file("metadata_${version}_${workflow.start}")
+metadatafile.text = """
+script name: ${workflow.scriptId}
+version: ${version}
+commitID: ${workflow.commitId}
+start date: ${workflow.start}
+reads: ${params.reads}
+MLST scheme: ${params.mlst_scheme}
+AMR db: ${params.amr_db}
+Virulence db: ${params.vir_db}
+"""
 
 
 // First, define the input data that go into input channels
