@@ -31,6 +31,10 @@ AMR db: ${params.amr_db}
 Virulence db: ${params.vir_db}
 """
 
+preCmd = """
+if [ -f /cluster/bin/jobsetup ];
+then set +u; source /cluster/bin/jobsetup; set -u; fi
+"""
 
 // First, define the input data that go into input channels
 Channel
@@ -54,6 +58,7 @@ process collate_data {
 
 
     """
+    ${preCmd}
     mkdir ${pair_id}
     cat ${pair_id}*R1*${params.file_ending} > ${pair_id}/${pair_id}_R1${params.file_ending}
     cat ${pair_id}*R2*${params.file_ending} > ${pair_id}/${pair_id}_R2${params.file_ending}
@@ -71,6 +76,7 @@ process run_ariba_mlst_prep {
     file "mlst_db" into mlst_db
 
     """
+    ${preCmd}
     ariba pubmlstget "$params.mlst_scheme" mlst_db
     """
 }
@@ -90,6 +96,7 @@ process run_ariba_mlst_pred {
     file "${pair_id}_ariba" into pair_id_mlst_aribadir
 
     """
+    ${preCmd}
     ariba run mlst_db/ref_db ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
     echo -e "header\t" \$(head -1 ${pair_id}_ariba/mlst_report.tsv) > ${pair_id}_mlst_report.tsv
     echo -e "${pair_id}\t" \$(tail -1 ${pair_id}_ariba/mlst_report.tsv) >> ${pair_id}_mlst_report.tsv
@@ -107,6 +114,7 @@ process run_ariba_mlst_summarize {
     file "mlst_summarized_results.tsv" into mlst_summarized
 
     """
+    ${preCmd}
     cat ${pair_id_mlst_tsv} >> mlst_summarized_results_tmp.tsv
     head -1 mlst_summarized_results_tmp.tsv > mlst_summarized_results.tsv
     cat mlst_summarized_results_tmp.tsv | grep -v "ST" >> mlst_summarized_results.tsv
@@ -123,6 +131,7 @@ process run_ariba_amr_prep {
     file "db_amr_prepareref" into db_amr_prepareref
 
     """
+    ${preCmd}
     ariba getref ${params.amr_db} amr_db
     ariba prepareref -f amr_db.fa -m amr_db.tsv db_amr_prepareref
     """
@@ -141,6 +150,7 @@ process run_ariba_amr_pred {
 
 
     """
+    ${preCmd}
     ariba run db_amr_prepareref ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
     cp ${pair_id}_ariba/report.tsv ${pair_id}_amr_report.tsv
 
@@ -158,6 +168,7 @@ process run_ariba_amr_summarize {
     file "amr_summarized*" into amr_summarized
 
     """
+    ${preCmd}
     ariba summary amr_summarized ${pair_id_amr_tsv}
     """
 }
@@ -170,6 +181,7 @@ process run_ariba_vir_prep {
     file "db_vir_prepareref" into db_vir_prepareref
 
     """
+    ${preCmd}
     ariba getref ${params.vir_db} vir_db
     ariba prepareref -f vir_db.fa -m vir_db.tsv db_vir_prepareref
     """
@@ -188,6 +200,7 @@ process run_ariba_amr_pred {
 
 
     """
+    ${preCmd}
     ariba run db_vir_prepareref ${pair_id}/${pair_id}_R*${params.file_ending} ${pair_id}_ariba > ariba.out 2>&1
     cp ${pair_id}_ariba/report.tsv ${pair_id}_vir_report.tsv
 
@@ -205,6 +218,7 @@ process run_ariba_vir_summarize {
     file "vir_summarized*" into vir_summarized
 
     """
+    ${preCmd}
     ariba summary vir_summarized ${pair_id_vir_tsv}
     """
 }
