@@ -31,81 +31,80 @@ if(params.help) {
 	return
 }
 
-// Returns a tuple of read pairs in the form
-// [dataset_id, forward.fq, reverse.fq] where
-// the dataset_id is the shared prefix from
-// the two paired FASTQ files.
+preCmd = """
+if [ -f /cluster/bin/jobsetup ];
+then set +u; source /cluster/bin/jobsetup; set -u; fi
+"""
+
+// First, define the input data that go into input channels
 Channel
-	.fromFilePairs(params.read_pairs, flat: true)
-	.ifEmpty { exit 1, "Read pairs could not be found: ${params.read_pairs}" }
-	.into { fastq_read_pairs }
+    .fromFilePairs( params.reads, size:params.setsize )
+    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
+    .into{ read_pairs }
+
+
+// if there are more than two data files, we need to cat them together
+// because spades becomes complicated with more than two files
+
+process collate_data {
+    publishDir "${params.out_dir}/${params.raw_data}", mode: 'copy'
+
+    input:
+    set pair_id, file(reads) from read_pairs
+
+    output:
+    set pair_id, file("${pair_id}_raw") into reads
+
+    """
+    ${preCmd}
+    mkdir ${pair_id}_raw
+    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_raw/R1${params.file_ending}
+    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_raw/R2${params.file_ending}
+    """
+}
 
 /*
  * Remove adapter sequences and low quality base pairs with Trimmomatic
- * At present only seems to care about paired reads, not singleton output
  */
-process RunQC {
-	publishDir "${params.out_dir}/PreProcessing", mode: "copy"
+process run_trim {
+	publishDir "${params.out_dir}/${params.trimmed}", mode: "copy"
 
-	tag { dataset_id }
+	tag { pair_id }
 
-        input:
-        set dataset_id, file(forward), file(reverse) from fastq_read_pairs
+    input:
+    set pair_id, file("${pair_id}_raw") from reads
 
-        output:
-        set dataset_id, file("${dataset_id}_1P.fastq"), file("${dataset_id}_2P.fastq") into (velvet_read_pairs, spades_read_pairs)
+    output:
+    set pair_id, file("${pair_id}_trimmed") into spades_read_pairs
 
-        """
-        java -jar ${HOME}/bin/Trimmomatic-0.36/trimmomatic-0.36.jar PE -threads ${threads} $forward $reverse -baseout ${dataset_id} ILLUMINACLIP:${HOME}/bin/Trimmomatic-0.36/adapters/${adapters}:2:30:10:3:TRUE LEADING:${leading} TRAILING:${trailing} SLIDINGWINDOW:${slidingwindow} MINLEN:${minlen}
-        mv ${dataset_id}_1P ${dataset_id}_1P.fastq
-        mv ${dataset_id}_2P ${dataset_id}_2P.fastq
-        """
+    """
+    ${preCmd}
+    mkdir ${pair_id}_trimmed
+    java -jar /home/karinlag/bin/trimmomatic.jar PE -threads 1 ${pair_id}_raw/*${params.file_ending} -baseout ${pair_id}_trimmed ILLUMINACLIP:/home/karinlag/bin/Trimmomatic-0.36/adapters/${params.adapters}:2:30:10:3:TRUE LEADING:${params.leading} TRAILING:${params.trailing} SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen}
+    mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
+    mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
+    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
+    """
 }
 
 
 /*
- * Build assembly with Velvet
- */
-//process BuildVelvetAssembly {
-//	publishDir "${params.out_dir}/VelvetContigs", mode: "copy"
-//
-//	tag { dataset_id }
-//
-//	input:
-//	set dataset_id, file(forward), file(reverse) from velvet_kg_pairs
-//	val best from best_velvet_kmer_results
-//
-//	output:
-//	set dataset_id, file("${dataset_id}_velvet-contigs.fa") into (velvet_assembly_results, velvet_assembly_quast_contigs)
-//
-//
-//	shell:
-//	'''
-//	#!/bin/sh
-//	best_kmer=`cat !{best}`
-//	velveth auto $best_kmer -separate -fastq -shortPaired !{forward} !{reverse}
-//	velvetg auto -exp_cov auto -cov_cutoff auto
-//	mv auto/contigs.fa !{dataset_id}_velvet-contigs.fa
-//	'''
-//}
-
-/*
  * Build assembly with SPAdes
  */
-process BuildSpadesAssembly {
-	publishDir "${params.out_dir}/SPadesContigs", mode: "copy"
+process spades_assembly {
+	publishDir "${params.out_dir}/${params.assembly}", mode: "copy"
 
-	tag { dataset_id }
+	tag { pair_id }
 
 	input:
-	set dataset_id, file(forward), file(reverse) from spades_read_pairs
+	set pair_id, file("${pair_id}_trimmed")  from spades_read_pairs
 
 	output:
-	set dataset_id, file("${dataset_id}_spades-contigs.fa") into (spades_assembly_results, spades_assembly_quast_contigs)
+	set pair_id, file("${pair_id}_spades") into (spades_assembly_results, spades_assembly_quast_contigs)
 
 	"""
-	${HOME}/bin/SPAdes-3.10.1-Linux/bin/spades.py --pe1-1 ${forward} --pe1-2 ${reverse} -t ${threads} -o spades_output
-	mv spades_output/contigs.fasta ${dataset_id}_spades-contigs.fa
+	${preCmd}
+	spades.py -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} -s ${pair_id}_trimmed/single${params.file_ending} -t 1 -o ${pair_id}_spades
 	"""
 }
 
@@ -115,22 +114,22 @@ process BuildSpadesAssembly {
 //process AnnotateContigs {
 //	publishDir "${params.out_dir}/AnnotatedContigs", mode: "copy"
 //
-//	tag { dataset_id }
+//	tag { pair_id }
 //
 //	input:
-//	set dataset_id, file(cisa_contigs) from cisa_integrated_contigs
+//	set pair_id, file(cisa_contigs) from cisa_integrated_contigs
 //
 //	output:
-//	file("${dataset_id}.*") into prokka_annotations
+//	file("${pair_id}.*") into prokka_annotations
 //
 //	shell:
 //	'''
 //	#!/bin/sh
 //	if [ !{species} && !{genus} ]
 //	then
-//		prokka !{cisa_contigs} --genus !{genus} --species !{species} --centre tychus --prefix !{dataset_id} --cpus !{threads} --outdir annotations
+//		prokka !{cisa_contigs} --genus !{genus} --species !{species} --centre tychus --prefix !{pair_id} --cpus !{threads} --outdir annotations
 //	else
-//		prokka !{cisa_contigs} --prefix !{dataset_id} --cpus !{threads} --outdir annotations
+//		prokka !{cisa_contigs} --prefix !{pair_id} --cpus !{threads} --outdir annotations
 //	fi
 //	mv annotations/* .
 //	'''
@@ -152,13 +151,13 @@ process BuildSpadesAssembly {
 //process EvaluateAssemblies {
 //	publishDir "${params.out_dir}/AssemblyReport", mode: "move"
 //
-//	tag { dataset_id }
+//	tag { pair_id }
 //
 //	input:
-//	set dataset_id, file(quast_contigs) from grouped_assembly_quast_contigs
+//	set pair_id, file(quast_contigs) from grouped_assembly_quast_contigs
 //
 //	output:
-//	file("${dataset_id}_*") into quast_evaluation
+//	file("${pair_id}_*") into quast_evaluation
 //
 //	shell:
 //	'''
@@ -167,7 +166,7 @@ process BuildSpadesAssembly {
 //        mkdir quast_output
 //        find output/ -maxdepth 2 -type f | xargs mv -t quast_output
 //        cd quast_output
-//        ls * | xargs -I {} mv {} !{dataset_id}_{}
+//        ls * | xargs -I {} mv {} !{pair_id}_{}
 //        mv * ../
 //	'''
 //}

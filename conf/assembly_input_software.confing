@@ -7,7 +7,7 @@
 * curly brackets. Make sure that setsize matches the number of
 * files that you get matching the prefix!
 */
-params.reads = "../testdata/risk/*L00{1,2}_R{1,2}_001.fastq.gz"
+params.reads = "../testdata/short/*L00{1,2}_R{1,2}_001.short.fastq.gz"
 params.file_ending = ".fastq.gz"
 params.setsize = 4
 //  Specify the name of the output directory, relative to where the script is being run
@@ -18,21 +18,21 @@ params.out_dir = "results"
 params.pwd = "$PWD"
 params.help = false
 
+params.threads = 1
+
 // Collected raw data
 params.raw_data = "raw_data"
 
-// Ariba mlst params
-params.mlst_scheme = "Escherichia coli#1"
-//params.mlst_scheme = "Campylobacter jejuni"
-params.mlst_results = "mlst_results"
+
+// Trimmomatic configuration variables
+params.trimmed = "trimmed"
+params.leading = 3
+params.trailing = 3
+params.slidingwindow = "4:15"
+params.minlen = 36
+params.adapters = "TruSeq3-PE.fa"
 
 
-// Ariba AMR params
-// Check the ariba webpage for legal values
-params.amr_db = "card"
-params.amr_results = "amr_results"
+// SPAdes configuration variables
+params.assembly = "spades_asm"
 
-// Ariba virulence params
-// Check the ariba webpage for legal values
-params.vir_db = "vfdb_core"
-params.vir_results = "vir_results"
