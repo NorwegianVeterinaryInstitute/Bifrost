@@ -80,7 +80,10 @@ process run_trim {
     """
     ${preCmd}
     mkdir ${pair_id}_trimmed
-    java -jar /home/karinlag/bin/trimmomatic.jar PE -threads 1 ${pair_id}_raw/*${params.file_ending} -baseout ${pair_id}_trimmed ILLUMINACLIP:/home/karinlag/bin/Trimmomatic-0.36/adapters/${params.adapters}:2:30:10:3:TRUE LEADING:${params.leading} TRAILING:${params.trailing} SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen}
+    $task.trimmomatic PE -threads 1 ${pair_id}_raw/*${params.file_ending} \
+        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:2:30:10:3:TRUE \
+        LEADING:${params.leading} TRAILING:${params.trailing} \
+        SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen}
     mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
     mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
     cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
@@ -104,7 +107,9 @@ process spades_assembly {
 
 	"""
 	${preCmd}
-	spades.py -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} -s ${pair_id}_trimmed/single${params.file_ending} -t 1 -o ${pair_id}_spades
+	$task.spades -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} \
+	    -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} \
+	    -s ${pair_id}_trimmed/single${params.file_ending} -t $task.cpus -o ${pair_id}_spades
 	"""
 }
 
