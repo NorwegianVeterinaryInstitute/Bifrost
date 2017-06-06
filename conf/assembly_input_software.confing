@@ -21,6 +21,12 @@ params.help = false
 // Collected raw data
 params.raw_data = "raw_data"
 
+// Raw fastqc results
+params.fastqc = "fastqc"
+
+// Fastqc evaluation results
+params.fastqc_eval = "fastqc_eval"
+
 
 // Trimmomatic configuration variables
 params.trimmed = "trimmed"
