@@ -49,6 +49,8 @@ Channel
 process collate_data {
     publishDir "${params.out_dir}/${params.raw_data}", mode: 'copy'
 
+    tag { pair_id }
+
     input:
     set pair_id, file(reads) from read_pairs
 
@@ -100,20 +102,20 @@ process spades_assembly {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_trimmed")  from spades_read_pairs
+	set pair_id, file("${pair_id}_trimmed") from spades_read_pairs
 
 	output:
-	set pair_id, file("${pair_id}_spades") into (spades_assembly_results, spades_assembly_quast_contigs)
+	set pair_id, file("${pair_id}_spades") into spades_assembly_results
+	file("${pair_id}_spades_scaffolds.fasta") into asms_for_quast
 
 	"""
 	${preCmd}
 	$task.spades -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} \
 	    -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} \
 	    -s ${pair_id}_trimmed/single${params.file_ending} -t $task.cpus -o ${pair_id}_spades
+	cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
 	"""
 }
-
-
 
 
 //process AnnotateContigs {
@@ -153,28 +155,24 @@ process spades_assembly {
 /*
  * Evaluate ALL assemblies with QUAST
  */
-//process EvaluateAssemblies {
-//	publishDir "${params.out_dir}/AssemblyReport", mode: "move"
-//
-//	tag { pair_id }
-//
-//	input:
-//	set pair_id, file(quast_contigs) from grouped_assembly_quast_contigs
-//
-//	output:
-//	file("${pair_id}_*") into quast_evaluation
-//
-//	shell:
-//	'''
-//	#!/bin/sh
-//	quast.py !{quast_contigs[0]} !{quast_contigs[1]} !{quast_contigs[2]} !{quast_contigs[3]} !{quast_contigs[4]} --space-efficient --threads !{threads} -o output
-//        mkdir quast_output
-//        find output/ -maxdepth 2 -type f | xargs mv -t quast_output
-//        cd quast_output
-//        ls * | xargs -I {} mv {} !{pair_id}_{}
-//        mv * ../
-//	'''
-//}
+process quast_eval {
+	publishDir "${params.out_dir}/${params.quast}", mode: "copy"
+
+	tag { pair_id }
+
+	input:
+	file asm_list from asms_for_quast.toSortedList()
+
+	output:
+	file "quast_evaluation_all"  into quast_evaluation_all
+
+	"""
+	${preCmd}
+	$task.quast --threads $task.threads -o quast_evaluation_all \
+		-G ${params.quast_genes} -R ${params.quast_ref} \
+	    ${asm_list} \
+	"""
+}
 
 // Display information about the completed run
 // See https://www.nextflow.io/docs/latest/metadata.html for more

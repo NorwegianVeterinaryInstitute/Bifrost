@@ -7,12 +7,12 @@
 * curly brackets. Make sure that setsize matches the number of
 * files that you get matching the prefix!
 */
-params.reads = "../testdata/short/*L00{1,2}_R{1,2}_001.short.fastq.gz"
+params.reads = "../testdata/risk_short/*L00{1,2}_R{1,2}_001.fastq.gz"
 params.file_ending = ".fastq.gz"
 params.setsize = 4
+
 //  Specify the name of the output directory, relative to where the script is being run
 params.out_dir = "results"
-
 
 // General configuration variables
 params.pwd = "$PWD"
@@ -35,4 +35,13 @@ params.adapters = "TruSeq3-PE.fa"
 
 // SPAdes configuration variables
 params.assembly = "spades_asm"
+params.read_length = "250"
+params.careful = "--careful"
+params.cov_cutoff = "off"
 
+
+// QUAST variables
+params.quast = "quast_eval"
+params.genome_directory = "/home/karinlag/PycharmProjects/genomes/"
+params.quast_ref = "${params.genome_directory}ecoli/GCF_000005845.2_ASM584v2_genomic.fna"
+params.quast_genes = "${params.genome_directory}ecoli/GCF_000005845.2_ASM584v2_genomic.gff"
