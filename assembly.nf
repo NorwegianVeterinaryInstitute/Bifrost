@@ -3,33 +3,19 @@
 // Adapted from https://github.com/cdeanj/nextflow-tychus
 // should put all of these on top into a config file.
 
+version = "something"
 
-// Display help menu
-if(params.help) {
-	log.info ''
-	log.info 'Bifrost - Assembly Pipeline'
-	log.info ''
-	log.info 'Usage: '
-	log.info '    nextflow assembly.nf -profile assembly [options]'
-	log.info ''
-	log.info 'General Options: '
-	log.info '    --read_pairs      DIR		Directory of paired FASTQ files'
-	log.info '    --threads         INT		Number of threads to use for each process'
-	log.info '    --output          DIR		Directory to write output files to'
-	log.info ''
-	log.info 'Trimmomatic Options: '
-	log.info '    --leading         INT		Remove leading low quality or N bases'
-	log.info '    --trailing        INT		Remove trailing low quality or N bases'
-	log.info '    --slidingwindow   INT		Scan read with a sliding window'
-	log.info '    --minlen          INT		Drop reads below INT bases long'
-	log.info '    --adapters        STR		FASTA formatted adapter file'
-	log.info ''
-	log.info 'Prokka Options: '
-	log.info '    --genus           STR		Target genus'
-	log.info '    --species         STR		Target species'
-	log.info ''
-	return
-}
+log.info ''
+log.info "================================================="
+log.info " Bifrost assembly moduoe v${version}"
+log.info "================================================="
+log.info "Reads                   : ${params.reads}"
+log.info "#files in read set      : ${params.setsize}"
+log.info "Quast reference         : ${params.quast_ref}"
+log.info "Quast gene set          : ${params.quast_genes}"
+log.info "Results can be found in : ${params.out_dir}"
+log.info "================================================="
+log.info ""
 
 preCmd = """
 if [ -f /cluster/bin/jobsetup ];
@@ -181,6 +167,6 @@ workflow.onComplete {
 	log.info "Nextflow Version:	$workflow.nextflow.version"
   	log.info "Command Line:		$workflow.commandLine"
 	log.info "Container:		$workflow.container"
-	log.info "Duration:		$workflow.duration"
+	log.info "Duration:		    $workflow.duration"
 	log.info "Output Directory:	$params.out_dir"
 }

@@ -18,8 +18,6 @@ params.out_dir = "results"
 params.pwd = "$PWD"
 params.help = false
 
-params.threads = 1
-
 // Collected raw data
 params.raw_data = "raw_data"
 

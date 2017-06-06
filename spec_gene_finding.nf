@@ -8,7 +8,7 @@
 version = 0.20170415
 
 log.info "================================================="
-log.info " Specific gene finding with Ariba v${version}"
+log.info " Bifrost specific gene finding with Ariba v${version}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
@@ -223,4 +223,13 @@ process run_ariba_vir_summarize {
     """
 }
 
-
+// Display information about the completed run
+// See https://www.nextflow.io/docs/latest/metadata.html for more
+// information about available onComplete options
+workflow.onComplete {
+	log.info "Nextflow Version:	$workflow.nextflow.version"
+  	log.info "Command Line:		$workflow.commandLine"
+	log.info "Container:		$workflow.container"
+	log.info "Duration:		    $workflow.duration"
+	log.info "Output Directory:	$params.out_dir"
+}
