@@ -59,7 +59,7 @@ process run_fastqc_eval {
     file "fastqc_eval.results"
 
     """
-    $task.python bin/fastqc_eval.py -d fastqc_output -o fastqc_eval.results
+    $task.python fastqc_eval.py -d fastqc_output -o fastqc_eval.results
     """
 }
 
