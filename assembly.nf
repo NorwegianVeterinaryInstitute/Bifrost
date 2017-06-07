@@ -3,11 +3,11 @@
 // Adapted from https://github.com/cdeanj/nextflow-tychus
 // should put all of these on top into a config file.
 
-version = "something"
+def rev = workflow.revision ?: workflow.commitId ?: workflow.scriptId.substring(0,10)
 
 log.info ''
 log.info "================================================="
-log.info " Bifrost assembly moduoe v${version}"
+log.info " Bifrost assembly module version ${rev}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
