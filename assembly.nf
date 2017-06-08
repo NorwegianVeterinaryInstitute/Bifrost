@@ -43,7 +43,7 @@ process run_fastqc {
 
     """
     mkdir ${pair_id}
-    $task.fastqc -q ${reads} -o ${pair_id}
+    $task.fastqc -q ${reads} -o ${pair_id} -t $task.threads
     """
 }
 
@@ -129,7 +129,8 @@ process spades_assembly {
 
 	"""
 	${preCmd}
-	$task.spades -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} \
+	$task.spades ${params.careful} --cov-cutoff=${params.cov_cutoff} \
+	    -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} \
 	    -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} \
 	    -s ${pair_id}_trimmed/single${params.file_ending} -t $task.cpus -o ${pair_id}_spades
 	cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta

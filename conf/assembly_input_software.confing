@@ -39,7 +39,6 @@ params.adapters = "TruSeq3-PE.fa"
 
 // SPAdes configuration variables
 params.assembly = "spades_asm"
-params.read_length = "250"
 params.careful = "--careful"
 params.cov_cutoff = "off"
 
