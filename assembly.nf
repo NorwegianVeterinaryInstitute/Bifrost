@@ -104,7 +104,7 @@ process run_trim {
     $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_trim.log ${pair_id}_raw/*${params.file_ending} \
         -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:2:30:10:3:TRUE \
         LEADING:${params.leading} TRAILING:${params.trailing} \
-        SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen}
+        SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen} &> ${pair_id}_run.log
     mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
     mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
     cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
