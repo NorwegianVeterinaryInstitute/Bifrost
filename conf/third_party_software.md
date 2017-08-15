@@ -11,7 +11,7 @@ The track(s) that each software is used in is noted below.
 
 ## Currently used software
 
-* MultiQC - Track One and Three
+* FastQC - Track One and Three
 * Ariba - Track Two
 * Trimmomatic - Track Three
 * SPAdes - Track Three
@@ -22,7 +22,7 @@ The track(s) that each software is used in is noted below.
 
 There are currently three tracks:
 
-* Track One: MultiQC on input reads
+* Track One: FastQC on input reads
 * Track Two: Ariba MLST, virulence and AMR analysis
 * Track Three: Trimming with trimmomatic followed by assembly
     with SPAdes. Trimming results are evaluated with MultiQC, and

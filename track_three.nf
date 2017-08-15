@@ -1,8 +1,5 @@
 #!/usr/bin/env nextflow
 
-// Adapted from https://github.com/cdeanj/nextflow-tychus
-// should put all of these on top into a config file.
-
 def rev = workflow.revision ?: workflow.commitId ?: workflow.scriptId.substring(0,10)
 
 log.info ''
@@ -11,8 +8,6 @@ log.info " Bifrost assembly module version ${rev}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
-log.info "Quast reference         : ${params.quast_ref}"
-log.info "Quast gene set          : ${params.quast_genes}"
 log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
