@@ -6,7 +6,7 @@
 # we set the memory to something more managable
 
 export NXF_OPTS='-Xms512M -Xmx2G'
-script_directory="${BASH_SOURCE[0]}"
+script_directory=$(dirname ${BASH_SOURCE[0]})
 
 track_script=$1
 template=$2
