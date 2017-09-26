@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This script takes in a directory consisting of one of more fastqc zipped
 results. These are unpacked, and the summary.txt files are analyzed to give an
