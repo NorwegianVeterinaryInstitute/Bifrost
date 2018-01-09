@@ -187,7 +187,7 @@ process run_ariba_vir_prep {
     """
 }
 
-process run_ariba_amr_pred {
+process run_ariba_vir_pred {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
 
     input:
