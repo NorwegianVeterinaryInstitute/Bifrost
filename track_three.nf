@@ -97,7 +97,7 @@ process run_trim {
     ${preCmd}
     mkdir ${pair_id}_trimmed
     $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_trim.log ${pair_id}_raw/*${params.file_ending} \
-        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:2:30:10:3:TRUE \
+        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:${params.illuminaClipOptions} \
         LEADING:${params.leading} TRAILING:${params.trailing} \
         SLIDINGWINDOW:${params.slidingwindow} MINLEN:${params.minlen} &> ${pair_id}_run.log
     mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
