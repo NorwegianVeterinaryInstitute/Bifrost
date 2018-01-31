@@ -91,7 +91,7 @@ process run_trim {
     set pair_id, file("${pair_id}_raw") from reads
 
     output:
-    set pair_id, file("${pair_id}_trimmed") into spades_read_pairs
+    set pair_id, file("${pair_id}_trimmed") into bbmap_read_pairs
 
     """
     ${preCmd}
@@ -109,6 +109,32 @@ process run_trim {
 
 
 /*
+ * Strip PhiX with bbmap
+ */
+process run_strip {
+
+	publishDir "${params.out_dir}/${params.bbmap}", mode: "copy"
+
+	tag { pair_id }
+
+	input:
+	set pair_id, file("${pair_id}_trimmed") from bbmap_read_pairs
+
+    output:
+    set pair_id, file("${pair_id}_stripped") into spades_read_pairs
+
+    """
+    ${preCmd}
+    mkdir ${pair_id}_stripped
+    $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} in=${pair_id}_trimmed/R1_trimmed${params.file_ending} \
+     in2=${pair_id}_trimmed/R2_trimmed${params.file_ending} out=${pair_id}_trimmed_mapped.sam \
+     outu=${pair_id}_R1_stripped.fastq.gz outu2=${pair_id}_R2_stripped.fastq.gz
+
+    """
+}
+
+
+/*
  * Build assembly with SPAdes
  */
 process spades_assembly {
@@ -117,7 +143,7 @@ process spades_assembly {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_trimmed") from spades_read_pairs
+	set pair_id, file("${pair_id}_stripped") from spades_read_pairs
 
 	output:
 	set pair_id, file("${pair_id}_spades") into spades_assembly_results
