@@ -66,7 +66,7 @@ process collate_data {
     tag { pair_id }
 
     input:
-    set pair_id, file(reads) from read_pairs
+    set pair_id, file(reads) from read_pairs.view()
 
     output:
     set pair_id, file("${pair_id}_raw") into reads
@@ -76,34 +76,6 @@ process collate_data {
     mkdir ${pair_id}_raw
     cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_raw/R1${params.file_ending}
     cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_raw/R2${params.file_ending}
-    """
-}
-
-/*
- * Remove adapter sequences and low quality base pairs with Trimmomatic
- */
-process run_trim {
-	publishDir "${params.out_dir}/${params.trimmed}", mode: "copy"
-
-	tag { pair_id }
-
-    input:
-    set pair_id, file("${pair_id}_raw") from reads
-
-    output:
-    set pair_id, file("${pair_id}_trimmed") into bbmap_read_pairs
-
-    """
-    ${preCmd}
-    mkdir ${pair_id}_trimmed
-    $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_trim.log ${pair_id}_raw/*${params.file_ending} \
-        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:${params.illuminaClipOptions} \
-        SLIDINGWINDOW:${params.slidingwindow} \
-        LEADING:${params.leading} TRAILING:${params.trailing} \
-        MINLEN:${params.minlen} &> ${pair_id}_run.log
-    mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
-    mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
-    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
     """
 }
 
@@ -118,18 +90,51 @@ process run_strip {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_trimmed") from bbmap_read_pairs
+	set pair_id, file("${pair_id}_raw") from reads.view()
 
     output:
-    set pair_id, file("${pair_id}_stripped") into spades_read_pairs
+    set pair_id, file("${pair_id}_stripped") into reads_stripped
 
     """
     ${preCmd}
     mkdir ${pair_id}_stripped
-    $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} in=${pair_id}_trimmed/R1_trimmed${params.file_ending} \
-     in2=${pair_id}_trimmed/R2_trimmed${params.file_ending} out=${pair_id}_trimmed_mapped.sam \
-     outu=${pair_id}_R1_stripped.fastq.gz outu2=${pair_id}_R2_stripped.fastq.gz
+    $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} \
+     in=${pair_id}_raw/R1${params.file_ending} \
+     in2=${pair_id}_raw/R2${params.file_ending} \
+     out=${pair_id}_stripped/${pair_id}_trimmed_mapped.sam \
+     outu=${pair_id}_stripped/${pair_id}_R1_stripped.fastq.gz \
+     outu2=${pair_id}_stripped/${pair_id}_R2_stripped.fastq.gz
+    """
+}
 
+
+
+
+/*
+ * Remove adapter sequences and low quality base pairs with Trimmomatic
+ */
+process run_trim {
+	publishDir "${params.out_dir}/${params.trimmed}", mode: "copy"
+
+	tag { pair_id }
+
+    input:
+    set pair_id, file("${pair_id}_stripped") from reads_stripped.view()
+
+    output:
+    set pair_id, file("${pair_id}_trimmed") into reads_trimmed
+
+    """
+    ${preCmd}
+    mkdir ${pair_id}_trimmed
+    $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_trim.log ${pair_id}_stripped/*${params.file_ending} \
+        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:${params.illuminaClipOptions} \
+        SLIDINGWINDOW:${params.slidingwindow} \
+        LEADING:${params.leading} TRAILING:${params.trailing} \
+        MINLEN:${params.minlen} &> ${pair_id}_run.log
+    mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
+    mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
+    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
     """
 }
 
@@ -143,10 +148,10 @@ process spades_assembly {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_stripped") from spades_read_pairs
+	set pair_id, file("${pair_id}_trimmed") from reads_trimmed.view()
 
 	output:
-	set pair_id, file("${pair_id}_spades") into spades_assembly_results
+	set pair_id, file("${pair_id}_spades") into assembly_results
 	file("${pair_id}_spades_scaffolds.fasta") into asms_for_quast
 
 	"""
