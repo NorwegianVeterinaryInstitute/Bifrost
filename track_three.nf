@@ -1,5 +1,13 @@
 #!/usr/bin/env nextflow
 
+// Note on coding: with Nextflow, we can use wildcards when specifying
+// output, but not input. Thus I'm using a dummy variable (dummyvar)
+// in some places to get things shipped from one process to another.
+// This eans that I'm controlling what files are shipped from one
+// process to the other via the output statement, not the input
+// statement.
+
+
 def rev = workflow.revision ?: workflow.commitId ?: workflow.scriptId.substring(0,10)
 
 log.info ''
@@ -31,32 +39,35 @@ process run_fastqc {
     tag { pair_id }
 
     input:
-    set pair_id, file(reads) from fastqc_reads
+    set pair_id, file(reads) from fastqc_reads//.view()
 
     output:
-    file "$pair_id" into fastqc_results
+    file "*_fastqc.{zip,html}" into fastqc_results
 
     """
     mkdir ${pair_id}
-    $task.fastqc -q ${reads} -o ${pair_id} -t $task.threads
+    $task.fastqc -q ${reads} -o . -t $task.threads
     """
 }
 
-process run_fastqc_eval {
-    publishDir "${params.out_dir}/${params.fastqc_eval}", mode: 'copy'
+// TODO: need to fix the python script so that it evals a set of files
+// or something
 
-    tag { pair_id }
-
-    input:
-    file "fastqc_output/*" from fastqc_results.toSortedList()
-
-    output:
-    file "fastqc_eval.results"
-
-    """
-    fastqc_eval.py -d fastqc_output -o fastqc_eval.results
-    """
-}
+//process run_fastqc_eval {
+//    publishDir "${params.out_dir}/${params.fastqc_eval}", mode: 'copy'
+//
+//    tag { pair_id }
+//
+//    input:
+//    file "*" from fastqc_results.toSortedList()//.view()
+//
+//    output:
+//    file "fastqc_eval.results"
+//
+//    """
+//    fastqc_eval.py -d fastqc_output -o fastqc_eval.results
+//    """
+//}
 
 // if there are more than two data files, we need to cat them together
 // because spades becomes complicated with more than two files
@@ -66,16 +77,15 @@ process collate_data {
     tag { pair_id }
 
     input:
-    set pair_id, file(reads) from read_pairs.view()
+    set pair_id, file(reads) from read_pairs//.view()
 
     output:
-    set pair_id, file("${pair_id}_raw") into reads
+    set pair_id, file("${pair_id}*_concat.fq.gz") into reads
 
     """
     ${preCmd}
-    mkdir ${pair_id}_raw
-    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_raw/R1${params.file_ending}
-    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_raw/R2${params.file_ending}
+    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_R1_concat.fq.gz
+    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_R2_concat.fq.gz
     """
 }
 
@@ -90,24 +100,22 @@ process run_strip {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_raw") from reads.view()
+	set pair_id, file(dummyvar) from reads.view()
 
     output:
-    set pair_id, file("${pair_id}_stripped") into reads_stripped
+    set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
+    file "${pair_id}_concat_mapped.sam" into mapped_reads
 
     """
     ${preCmd}
-    mkdir ${pair_id}_stripped
     $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} \
-     in=${pair_id}_raw/R1${params.file_ending} \
-     in2=${pair_id}_raw/R2${params.file_ending} \
-     out=${pair_id}_stripped/${pair_id}_trimmed_mapped.sam \
-     outu=${pair_id}_stripped/${pair_id}_R1_stripped.fastq.gz \
-     outu2=${pair_id}_stripped/${pair_id}_R2_stripped.fastq.gz
+     in=${pair_id}_R1_concat.fq.gz \
+     in2=${pair_id}_R2_concat.fq.gz \
+     out=${pair_id}_concat_mapped.sam \
+     outu=${pair_id}_R1_concat_stripped.fq.gz \
+     outu2=${pair_id}_R2_concat_stripped.fq.gz
     """
 }
-
-
 
 
 /*
@@ -119,22 +127,22 @@ process run_trim {
 	tag { pair_id }
 
     input:
-    set pair_id, file("${pair_id}_stripped") from reads_stripped.view()
+    set pair_id, file(dummyvar) from reads_stripped.view()
 
     output:
-    set pair_id, file("${pair_id}_trimmed") into reads_trimmed
+    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into reads_trimmed
+    file "${pair_id}_concat_stripped_trimmed.log"
 
     """
     ${preCmd}
-    mkdir ${pair_id}_trimmed
-    $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_trim.log ${pair_id}_stripped/*${params.file_ending} \
+    $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
         -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:${params.illuminaClipOptions} \
         SLIDINGWINDOW:${params.slidingwindow} \
         LEADING:${params.leading} TRAILING:${params.trailing} \
         MINLEN:${params.minlen} &> ${pair_id}_run.log
-    mv ${pair_id}_trimmed_1P ${pair_id}_trimmed/R1_trimmed${params.file_ending}
-    mv ${pair_id}_trimmed_2P ${pair_id}_trimmed/R2_trimmed${params.file_ending}
-    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_trimmed/single${params.file_ending}
+    mv ${pair_id}_trimmed_1P ${pair_id}_R1_concat_stripped_trimmed.fq.gz
+    mv ${pair_id}_trimmed_2P ${pair_id}_R2_concat_stripped_trimmed.fq.gz
+    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_S_concat_stripped_trimmed.fq.gz
     """
 }
 
@@ -148,19 +156,21 @@ process spades_assembly {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_trimmed") from reads_trimmed.view()
+	set pair_id, file(dummyvar) from reads_trimmed.view()
 
 	output:
-	set pair_id, file("${pair_id}_spades") into assembly_results
-	file("${pair_id}_spades_scaffolds.fasta") into asms_for_quast
+	set pair_id, file("${pair_id}_spades_scaffolds.fasta") into assembly_results
+	file "${pair_id}_spades_scaffolds.fasta" into asms_for_quast
+	file "${pair_id}_spades.log"
 
 	"""
 	${preCmd}
 	$task.spades ${params.careful} --cov-cutoff=${params.cov_cutoff} \
-	    -1 ${pair_id}_trimmed/R1_trimmed${params.file_ending} \
-	    -2 ${pair_id}_trimmed/R2_trimmed${params.file_ending} \
-	    -s ${pair_id}_trimmed/single${params.file_ending} -t $task.cpus -o ${pair_id}_spades
+	    -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
+	    -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
+	    -s ${pair_id}_S_concat_stripped_trimmed.fq.gz -t $task.cpus -o ${pair_id}_spades
 	cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
+	cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
 	"""
 }
 
@@ -203,7 +213,7 @@ process spades_assembly {
  * Evaluate ALL assemblies with QUAST
  */
 process quast_eval {
-	publishDir "${params.out_dir}/${params.quast}", mode: "copy"
+	publishDir "${params.out_dir}/", mode: "copy"
 
 	tag { pair_id }
 
@@ -211,11 +221,11 @@ process quast_eval {
 	file asm_list from asms_for_quast.toSortedList()
 
 	output:
-	file "quast_evaluation_all"  into quast_evaluation_all
+	file "${params.quast}"  into quast_evaluation_all
 
 	"""
 	${preCmd}
-	$task.quast --threads $task.threads -o quast_evaluation_all \
+	$task.quast --threads $task.threads -o ${params.quast} \
 		-G ${params.quast_genes} -R ${params.quast_ref} \
 	    ${asm_list} \
 	"""
