@@ -1,10 +1,23 @@
 #!/usr/bin/env nextflow
 
-def rev = workflow.revision ?: workflow.commitId ?: workflow.scriptId.substring(0,10)
+// Note on coding: with Nextflow, we can use wildcards when specifying
+// output, but not input. Thus I'm using a dummy variable (dummyvar)
+// in some places to get things shipped from one process to another.
+// This eans that I'm controlling what files are shipped from one
+// process to the other via the output statement, not the input
+// statement.
+
+// Which version do we have?
+if (workflow.commitId) {
+  version = "v0.2.0 $workflow.revision"
+}
+else {
+  version = "v0.2.0 local"
+}
 
 log.info ''
 log.info "================================================="
-log.info " Bifrost assembly module version ${rev}"
+log.info " Bifrost quality assessment module, version ${version}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
@@ -12,6 +25,7 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
+// Needed to run on the Abel cluster
 preCmd = """
 if [ -f /cluster/bin/jobsetup ];
 then set +u; source /cluster/bin/jobsetup; set -u; fi
@@ -21,7 +35,7 @@ then set +u; source /cluster/bin/jobsetup; set -u; fi
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .into{ fastqc_reads; read_pairs }
+    .into{fastqc_reads}
 
 // Second is to send all of through fastqc
 
@@ -42,18 +56,17 @@ process run_fastqc {
     """
 }
 
-process run_fastqc_eval {
+process run_multiqc {
     publishDir "${params.out_dir}/${params.fastqc_eval}", mode: 'copy'
-
-    tag { pair_id }
+    tag {"multiqc"}
 
     input:
     file "fastqc_output/*" from fastqc_results.toSortedList()
 
     output:
-    file "fastqc_eval.results"
+    file "multiqc_report.html" into multiqc_report
 
     """
-    fastqc_eval.py -d fastqc_output -o fastqc_eval.results
+    multiqc fastqc_output
     """
 }
