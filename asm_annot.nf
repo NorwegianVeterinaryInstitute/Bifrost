@@ -2,7 +2,7 @@
 
 // This script is part of the Bifrost pipeline. Please see
 // the accompanying LICENSE document for licensing issues,
-// and the WIKI for this repo for instructions. 
+// and the WIKI for this repo for instructions.
 
 // Which version do we have?
 if (workflow.commitId) {
@@ -126,7 +126,7 @@ process run_strip {
  * Remove adapter sequences and low quality base pairs with Trimmomatic
  */
 process run_trim {
-	publishDir "${params.out_dir}/${params.trimmed}", mode: "copy"
+	publishDir "${params.out_dir}/bbmap_trimmed", mode: "copy"
 
 	tag { pair_id }
 
@@ -155,7 +155,7 @@ process run_trim {
  * Build assembly with SPAdes
  */
 process spades_assembly {
-	publishDir "${params.out_dir}/${params.assembly}", mode: "copy"
+	publishDir "${params.out_dir}/spades", mode: "copy"
 
 	tag { pair_id }
 
@@ -217,6 +217,8 @@ process spades_assembly {
  * Evaluate ALL assemblies with QUAST
  */
 process quast_eval {
+  // The output here is a directory in and of itself
+  // thus not creating a new one
 	publishDir "${params.out_dir}/", mode: "copy"
 
 	tag { pair_id }
@@ -229,7 +231,7 @@ process quast_eval {
 
 	"""
 	${preCmd}
-	$task.quast --threads $task.threads -o ${params.quast} \
+	$task.quast --threads $task.threads -o quast_evaluation_all \
 		-G ${params.quast_genes} -R ${params.quast_ref} \
 	    ${asm_list} \
 	"""
