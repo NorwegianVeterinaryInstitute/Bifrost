@@ -82,15 +82,15 @@ process collate_data {
     tag {pair_id}
 
     input:
-    set pair_id, file(reads) from read_pairs//.view()
+    set pair_id, file(reads) from read_pairs
 
     output:
     set pair_id, file("${pair_id}*_concat.fq.gz") into reads
 
     """
     ${preCmd}
-    cat ${pair_id}*R1*${params.file_ending} > ${pair_id}_R1_concat.fq.gz
-    cat ${pair_id}*R2*${params.file_ending} > ${pair_id}_R2_concat.fq.gz
+    cat ${pair_id}*R1* > ${pair_id}_R1_concat.fq.gz
+    cat ${pair_id}*R2* > ${pair_id}_R2_concat.fq.gz
     """
 }
 
