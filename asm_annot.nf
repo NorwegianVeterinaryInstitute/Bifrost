@@ -1,11 +1,8 @@
 #!/usr/bin/env nextflow
 
-// Note on coding: with Nextflow, we can use wildcards when specifying
-// output, but not input. Thus I'm using a dummy variable (dummyvar)
-// in some places to get things shipped from one process to another.
-// This eans that I'm controlling what files are shipped from one
-// process to the other via the output statement, not the input
-// statement.
+// This script is part of the Bifrost pipeline. Please see
+// the accompanying LICENSE document for licensing issues,
+// and the WIKI for this repo for instructions. 
 
 // Which version do we have?
 if (workflow.commitId) {
@@ -134,7 +131,7 @@ process run_trim {
 	tag { pair_id }
 
     input:
-    set pair_id, file(dummyvar) from reads_stripped.view()
+    set pair_id, file(reads) from reads_stripped
 
     output:
     set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into reads_trimmed
@@ -163,7 +160,7 @@ process spades_assembly {
 	tag { pair_id }
 
 	input:
-	set pair_id, file(dummyvar) from reads_trimmed.view()
+	set pair_id, file(reads) from reads_trimmed
 
 	output:
 	set pair_id, file("${pair_id}_spades_scaffolds.fasta") into assembly_results
