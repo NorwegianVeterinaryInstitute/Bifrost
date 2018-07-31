@@ -110,7 +110,7 @@ process run_strip {
     output:
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_concat_mapped.sam" into mapped_reads
-    file "bbmap_output.log" into bbmap_logfile
+    file "bbmap_output.log"
 
     """
     ${preCmd}
