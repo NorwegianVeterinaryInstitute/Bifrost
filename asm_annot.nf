@@ -97,7 +97,7 @@ process collate_data {
  */
 process run_strip {
 
-	publishDir "${params.out_dir}/bbmap}", mode: "copy"
+	publishDir "${params.out_dir}/bbmap", mode: "copy"
 
 	tag { pair_id }
 
