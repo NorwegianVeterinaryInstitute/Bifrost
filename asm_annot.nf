@@ -7,12 +7,20 @@
 // process to the other via the output statement, not the input
 // statement.
 
+// Which version do we have?
+if (workflow.commitId) {
+  version = "v0.2.0 $workflow.revision"
+}
+else {
+  version = "v0.2.0 local"
+}
 
-def rev = workflow.revision ?: workflow.commitId ?: workflow.scriptId.substring(0,10)
+// TODO I need to incorporate some options for prokka here
+// Also strip genome
 
 log.info ''
 log.info "================================================="
-log.info " Bifrost assembly module version ${rev}"
+log.info " Bifrost assembly module version ${version}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
@@ -20,6 +28,7 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
+// Needed to run on the Abel cluster
 preCmd = """
 if [ -f /cluster/bin/jobsetup ];
 then set +u; source /cluster/bin/jobsetup; set -u; fi
@@ -34,9 +43,9 @@ Channel
 // Second is to send all of through fastqc
 
 process run_fastqc {
-    publishDir "${params.out_dir}/${params.fastqc}", mode: 'copy'
+    publishDir "${params.out_dir}/fastqc}", mode: 'copy'
 
-    tag { pair_id }
+    tag {pair_id}
 
     input:
     set pair_id, file(reads) from fastqc_reads//.view()
@@ -72,9 +81,10 @@ process run_fastqc {
 // if there are more than two data files, we need to cat them together
 // because spades becomes complicated with more than two files
 process collate_data {
-    publishDir "${params.out_dir}/${params.raw_data}", mode: 'copy'
+    // Note, not publishing these because that would mean
+    // triple copies of the files on the system
 
-    tag { pair_id }
+    tag {pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs//.view()
@@ -95,20 +105,22 @@ process collate_data {
  */
 process run_strip {
 
-	publishDir "${params.out_dir}/${params.bbmap}", mode: "copy"
+	publishDir "${params.out_dir}/bbmap}", mode: "copy"
 
 	tag { pair_id }
 
 	input:
-	set pair_id, file(dummyvar) from reads.view()
+	set pair_id, file(reads) from reads
 
     output:
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_concat_mapped.sam" into mapped_reads
+    file "${pair_id}"
 
     """
     ${preCmd}
     $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} \
+    covstats=constats.txt covhist=covhist.txt basecov=basecov.txt bincov=bincov.txt \
      in=${pair_id}_R1_concat.fq.gz \
      in2=${pair_id}_R2_concat.fq.gz \
      out=${pair_id}_concat_mapped.sam \
