@@ -97,7 +97,7 @@ process collate_data {
  */
 process run_strip {
 
-	publishDir "${params.out_dir}/bbmap", mode: "copy"
+	publishDir "${params.out_dir}/bbduk", mode: "copy"
 
 	tag { pair_id }
 
@@ -106,18 +106,17 @@ process run_strip {
 
     output:
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
-    file "${pair_id}_concat_mapped.sam" into mapped_reads
-    file "bbmap_output.log"
+    file "${pair_id}_bbduk_output.log"
 
     """
     ${preCmd}
-    $task.bbmap threads=$task.threads ref=${params.stripgenome} path=${params.stripdir} \
-    covstats=constats.txt covhist=covhist.txt basecov=basecov.txt bincov=bincov.txt \
-     in=${pair_id}_R1_concat.fq.gz \
+    $task.bbduk threads=$task.threads ref=${params.stripgenome} \
+     in1=${pair_id}_R1_concat.fq.gz \
      in2=${pair_id}_R2_concat.fq.gz \
-     out=${pair_id}_concat_mapped.sam \
-     outu=${pair_id}_R1_concat_stripped.fq.gz \
-     outu2=${pair_id}_R2_concat_stripped.fq.gz > bbmap_output.log
+     outm=${pair_id}_matched.fq.gz \
+     out1=${pair_id}_R1_concat_stripped.fq.gz \
+     out2=${pair_id}_R2_concat_stripped.fq.gz \
+     k=31 hdist=1 stats=stats.txt &> ${pair_id}_bbduk_output.log
     """
 }
 
@@ -126,7 +125,7 @@ process run_strip {
  * Remove adapter sequences and low quality base pairs with Trimmomatic
  */
 process run_trim {
-	publishDir "${params.out_dir}/bbmap_trimmed", mode: "copy"
+	publishDir "${params.out_dir}/bbduk_trimmed", mode: "copy"
 
 	tag { pair_id }
 
