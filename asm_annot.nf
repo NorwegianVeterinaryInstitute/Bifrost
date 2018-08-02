@@ -83,6 +83,8 @@ process collate_data {
 
     output:
     set pair_id, file("${pair_id}*_concat.fq.gz") into reads
+    set pair_id, file("${pair_id}*_concat.fq.gz") into pilon_reads
+
 
     """
     ${preCmd}
@@ -177,30 +179,56 @@ process spades_assembly {
 	"""
 }
 
+// integrate pilon. I need to have a mapping step, followed by a pilon
+// step.
+
 /*
  * Build assembly with SPAdes
  */
-process run_prokka {
-	publishDir "${params.out_dir}/prokka", mode: "copy"
+process run_bwamen {
+	publishDir "${params.out_dir}/bwamen", mode: "copy"
 
 	tag { pair_id }
 
 	input:
 	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
-
+  set pair_id, file(reads) from pilon_reads
 	output:
-	set pair_id, file("${pair_id}.*") into annotation_results
+	set pair_id, file("${pair_id}_mapped_sorted.bam") into bwamem_results
 
   """
-	${preCmd}
-  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
-  --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
-  --genus ${params.genus} --species ${params.species} \
-  --kingdom ${params.kingdom} ${params.prokka_additional} \
-  --outdir . ${pair_id}_spades_scaffolds.fasta
+  $task.bwaindex ${pair_id}_spades_scaffolds.fasta
+  $task.bwamem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
+  *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
   """
-
 }
+
+
+// Need to change the channel input name here, to reflect the pilon step.
+/*
+ * Build assembly with SPAdes
+ */
+//process run_prokka {
+//	publishDir "${params.out_dir}/prokka", mode: "copy"
+//
+//	tag { pair_id }
+//
+//	input:
+//	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
+//
+//	output:
+//	set pair_id, file("${pair_id}.*") into annotation_results
+//
+//  """
+//	${preCmd}
+//  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
+//  --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
+//  --genus ${params.genus} --species ${params.species} \
+//  --kingdom ${params.kingdom} ${params.prokka_additional} \
+//  --outdir . ${pair_id}_spades_scaffolds.fasta
+//  """
+//
+//}
 
 /*
  * Evaluate ALL assemblies with QUAST
