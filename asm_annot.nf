@@ -177,40 +177,30 @@ process spades_assembly {
 	"""
 }
 
+/*
+ * Build assembly with SPAdes
+ */
+process run_prokka {
+	publishDir "${params.out_dir}/prokka", mode: "copy"
 
-//process AnnotateContigs {
-//	publishDir "${params.out_dir}/AnnotatedContigs", mode: "copy"
-//
-//	tag { pair_id }
-//
-//	input:
-//	set pair_id, file(cisa_contigs) from cisa_integrated_contigs
-//
-//	output:
-//	file("${pair_id}.*") into prokka_annotations
-//
-//	shell:
-//	'''
-//	#!/bin/sh
-//	if [ !{species} && !{genus} ]
-//	then
-//		prokka !{cisa_contigs} --genus !{genus} --species !{species} --centre tychus --prefix !{pair_id} --cpus !{threads} --outdir annotations
-//	else
-//		prokka !{cisa_contigs} --prefix !{pair_id} --cpus !{threads} --outdir annotations
-//	fi
-//	mv annotations/* .
-//	'''
-//}
+	tag { pair_id }
 
-//abyss_assembly_quast_contigs.concat(
-//                velvet_assembly_quast_contigs,
-//               spades_assembly_quast_contigs,
-//                idba_assembly_quast_contigs,
-//		cisa_integrated_quast_contigs
-//       )
-//        .groupTuple(sort: true, size: 5)
-//        .into { grouped_assembly_quast_contigs }
+	input:
+	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
 
+	output:
+	set pair_id, file("${pair_id}.*") into annotation_results
+
+  """
+	${preCmd}
+  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
+  --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
+  --genus ${params.genus} --species ${params.species} \
+  --kingdom ${params.kingdom} ${params.prokka_additional} \
+  --outdir . ${pair_id}_spades_scaffolds.fasta
+  """
+
+}
 
 /*
  * Evaluate ALL assemblies with QUAST
