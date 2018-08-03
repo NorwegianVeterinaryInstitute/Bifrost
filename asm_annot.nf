@@ -82,9 +82,7 @@ process collate_data {
     set pair_id, file(reads) from read_pairs
 
     output:
-    set pair_id, file("${pair_id}*_concat.fq.gz") into reads
-    set pair_id, file("${pair_id}*_concat.fq.gz") into pilon_reads
-
+    set pair_id, file("${pair_id}*_concat.fq.gz") into (reads, pilon_reads)
 
     """
     ${preCmd}
@@ -183,25 +181,29 @@ process spades_assembly {
 // step.
 
 /*
- * Build assembly with SPAdes
+ * Map reads to the spades assembly
  */
-process run_bwamen {
-	publishDir "${params.out_dir}/bwamen", mode: "copy"
+process run_bwamem {
+	publishDir "${params.out_dir}/bwamem", mode: "copy"
 
 	tag { pair_id }
 
 	input:
 	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
   set pair_id, file(reads) from pilon_reads
-	output:
+
+  output:
 	set pair_id, file("${pair_id}_mapped_sorted.bam") into bwamem_results
 
   """
-  $task.bwaindex ${pair_id}_spades_scaffolds.fasta
-  $task.bwamem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
+  $task.bwa index ${pair_id}_spades_scaffolds.fasta
+  $task.bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
   *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
   """
 }
+
+
+
 
 
 // Need to change the channel input name here, to reflect the pilon step.
