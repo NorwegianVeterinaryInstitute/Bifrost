@@ -162,8 +162,8 @@ process spades_assembly {
 	set pair_id, file(reads) from reads_trimmed
 
 	output:
-	set pair_id, file("${pair_id}_spades_scaffolds.fasta") into assembly_results
-	file "${pair_id}_spades_scaffolds.fasta" into asms_for_quast
+	set pair_id, file("${pair_id}_spades_scaffolds.fasta") \
+    into (assembly_results, tobwa_results)
 	file "${pair_id}_spades.log"
 
 	"""
@@ -189,48 +189,72 @@ process run_bwamem {
 	tag { pair_id }
 
 	input:
-	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
+	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from tobwa_results
   set pair_id, file(reads) from pilon_reads
 
   output:
-	set pair_id, file("${pair_id}_mapped_sorted.bam") into bwamem_results
+	set pair_id, file("${pair_id}_mapped_sorted.bam"), \
+    file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
   """
   $task.bwa index ${pair_id}_spades_scaffolds.fasta
   $task.bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
   *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
+  $task.samtools index ${pair_id}_mapped_sorted.bam
   """
 }
 
-
-
-
-
-// Need to change the channel input name here, to reflect the pilon step.
 /*
- * Build assembly with SPAdes
- */
-//process run_prokka {
-//	publishDir "${params.out_dir}/prokka", mode: "copy"
-//
-//	tag { pair_id }
-//
-//	input:
-//	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
-//
-//	output:
-//	set pair_id, file("${pair_id}.*") into annotation_results
-//
-//  """
-//	${preCmd}
-//  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
-//  --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
-//  --genus ${params.genus} --species ${params.species} \
-//  --kingdom ${params.kingdom} ${params.prokka_additional} \
-//  --outdir . ${pair_id}_spades_scaffolds.fasta
-//  """
-//
-//}
+* Incorporating pilon_reads
+*/
+
+process run_pilon {
+  publishDir "${params.out_dir}/pilon", mode: "copy"
+
+	tag { pair_id }
+
+	input:
+	set pair_id, file("${pair_id}_mapped_sorted.bam"), \
+    file("${pair_id}_mapped_sorted.bam.bai") from bwamem_results
+  set pair_id, file("${pair_id}_spades_scaffolds.fasta") from assembly_results
+
+  output:
+	set pair_id, file("${pair_id}_pilon_spades.*") into pilon_results
+  set pair_id, file("${pair_id}_pilon_spades.fasta") into to_prokka
+  set pair_id, file("${pair_id}_pilon_spades.fasta") into asms_for_quast
+
+  """
+  $task.pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
+  --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
+  --changes --vcfqe &> ${pair_id}_pilon_spades.log
+  """
+
+}
+
+/*
+* Annotation using PROKKA
+*/
+process run_prokka {
+	publishDir "${params.out_dir}/prokka", mode: "copy"
+
+	tag { pair_id }
+
+	input:
+	set pair_id, file("${pair_id}_pilon_spades.fasta") from to_prokka
+
+	output:
+	set pair_id, file("${pair_id}.*") into annotation_results
+
+  """
+	${preCmd}
+  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
+  --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
+  --genus ${params.genus} --species ${params.species} \
+  --kingdom ${params.kingdom} ${params.prokka_additional} \
+  --outdir . ${pair_id}_pilon_spades.fasta
+  """
+
+}
 
 /*
  * Evaluate ALL assemblies with QUAST
