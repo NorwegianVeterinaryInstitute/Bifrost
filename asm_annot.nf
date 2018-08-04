@@ -221,7 +221,7 @@ process run_pilon {
   output:
 	set pair_id, file("${pair_id}_pilon_spades.*") into pilon_results
   set pair_id, file("${pair_id}_pilon_spades.fasta") into to_prokka
-  set pair_id, file("${pair_id}_pilon_spades.fasta") into asms_for_quast
+  file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
   """
   $task.pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
@@ -286,7 +286,7 @@ process quast_eval {
 // information about available onComplete options
 workflow.onComplete {
 	log.info "Nextflow Version:	$workflow.nextflow.version"
-  	log.info "Command Line:		$workflow.commandLine"
+  log.info "Command Line:		$workflow.commandLine"
 	log.info "Container:		$workflow.container"
 	log.info "Duration:		    $workflow.duration"
 	log.info "Output Directory:	$params.out_dir"
