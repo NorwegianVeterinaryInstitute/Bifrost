@@ -68,6 +68,9 @@ process run_ariba_mlst_prep {
     output:
     file "mlst_db" into mlst_db
 
+    when:
+    params.do_mlst == "yes"
+
     """
     ${preCmd}
     ariba pubmlstget "${params.mlst_scheme}" mlst_db
@@ -88,6 +91,9 @@ process run_ariba_mlst_pred {
     file "${pair_id}_mlst_report.tsv" into pair_id_mlst_tsv
     file "${pair_id}_ariba" into pair_id_mlst_aribadir
 
+    when:
+    params.do_mlst == "yes"
+
     """
     ${preCmd}
     ariba run mlst_db/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
@@ -106,6 +112,9 @@ process run_ariba_mlst_summarize {
     output:
     file "mlst_summarized_results.tsv" into mlst_summarized
 
+    when:
+    params.do_mlst == "yes"
+
     """
     ${preCmd}
     cat ${pair_id_mlst_tsv} >> mlst_summarized_results_tmp.tsv
@@ -122,6 +131,9 @@ process run_ariba_amr_prep {
 
     output:
     file "db_amr_prepareref" into db_amr_prepareref
+
+    when:
+    params.do_amr == "yes"
 
     """
     ${preCmd}
@@ -140,6 +152,9 @@ process run_ariba_amr_pred {
     output:
     file "${pair_id}_amr_report.tsv" into pair_id_amr_tsv
     file "${pair_id}_ariba" into pair_id_amr_aribadir
+
+    when:
+    params.do_amr == "yes"
 
 
     """
@@ -160,6 +175,9 @@ process run_ariba_amr_summarize {
     output:
     file "amr_summarized*" into amr_summarized
 
+    when:
+    params.do_amr == "yes"
+
     """
     ${preCmd}
     ariba summary amr_summarized ${pair_id_amr_tsv}
@@ -172,6 +190,9 @@ process run_ariba_vir_prep {
 
     output:
     file "db_vir_prepareref" into db_vir_prepareref
+
+    when:
+    params.do_vir == "yes"
 
     """
     ${preCmd}
@@ -191,6 +212,8 @@ process run_ariba_vir_pred {
     file "${pair_id}_vir_report.tsv" into pair_id_vir_tsv
     file "${pair_id}_ariba" into pair_id_vir_aribadir
 
+    when:
+    params.do_vir == "yes"
 
     """
     ${preCmd}
@@ -210,6 +233,9 @@ process run_ariba_vir_summarize {
 
     output:
     file "vir_summarized*" into vir_summarized
+
+    when:
+    params.do_vir == "yes"
 
     """
     ${preCmd}
