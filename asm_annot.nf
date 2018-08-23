@@ -51,7 +51,7 @@ process run_fastqc {
 
     """
     mkdir ${pair_id}
-    $task.fastqc -q ${reads} -o ${pair_id} -t $task.threads
+    fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
 }
 
@@ -110,7 +110,7 @@ process run_strip {
 
     """
     ${preCmd}
-    $task.bbduk threads=$task.threads ref=${params.stripgenome} \
+    bbduk.sh threads=$task.cpus ref=${params.stripgenome} \
      in1=${pair_id}_R1_concat.fq.gz \
      in2=${pair_id}_R2_concat.fq.gz \
      outm=${pair_id}_matched.fq.gz \
@@ -138,8 +138,8 @@ process run_trim {
 
     """
     ${preCmd}
-    $task.trimmomatic PE -threads $task.threads -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
-        -baseout ${pair_id}_trimmed ILLUMINACLIP:$task.adapter_dir/${params.adapters}:${params.illuminaClipOptions} \
+    trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
+        -baseout ${pair_id}_trimmed ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
         SLIDINGWINDOW:${params.slidingwindow} \
         LEADING:${params.leading} TRAILING:${params.trailing} \
         MINLEN:${params.minlen} &> ${pair_id}_run.log
@@ -168,7 +168,7 @@ process spades_assembly {
 
 	"""
 	${preCmd}
-	$task.spades ${params.careful} --cov-cutoff=${params.cov_cutoff} \
+	spades.py ${params.careful} --cov-cutoff=${params.cov_cutoff} \
 	    -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
 	    -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
 	    -s ${pair_id}_S_concat_stripped_trimmed.fq.gz -t $task.cpus -o ${pair_id}_spades
@@ -197,10 +197,10 @@ process run_bwamem {
     file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
   """
-  $task.bwa index ${pair_id}_spades_scaffolds.fasta
-  $task.bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
+  bwa index ${pair_id}_spades_scaffolds.fasta
+  bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
   *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
-  $task.samtools index ${pair_id}_mapped_sorted.bam
+  samtools index ${pair_id}_mapped_sorted.bam
   """
 }
 
@@ -224,7 +224,7 @@ process run_pilon {
   file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
   """
-  $task.pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
+  pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
   --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
   --changes --vcfqe &> ${pair_id}_pilon_spades.log
   """
@@ -247,7 +247,7 @@ process run_prokka {
 
   """
 	${preCmd}
-  $task.prokka --compliant --force --usegenus --cpus $task.cpus \
+  prokka --compliant --force --usegenus --cpus $task.cpus \
   --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
   --genus ${params.genus} --species ${params.species} \
   --kingdom ${params.kingdom} ${params.prokka_additional} \
@@ -275,7 +275,7 @@ process quast_eval {
 
 	"""
 	${preCmd}
-	$task.quast --threads $task.threads -o quast_evaluation_all \
+	quast --threads $task.cpus -o quast_evaluation_all \
 		-G ${params.quast_genes} -R ${params.quast_ref} \
 	    ${asm_list} \
 	"""
