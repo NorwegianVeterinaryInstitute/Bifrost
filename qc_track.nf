@@ -52,7 +52,7 @@ process run_fastqc {
 
     """
     mkdir ${pair_id}
-    $task.fastqc -q ${reads} -o ${pair_id} -t $task.threads
+    fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
 }
 
