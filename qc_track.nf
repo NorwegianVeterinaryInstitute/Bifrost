@@ -57,7 +57,7 @@ process run_fastqc {
 }
 
 process run_multiqc {
-    publishDir "${params.out_dir}/${params.fastqc_eval}", mode: 'copy'
+    publishDir "${params.out_dir}/multiqc", mode: 'copy'
     tag {"multiqc"}
 
     input:
