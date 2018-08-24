@@ -35,7 +35,7 @@ then set +u; source /cluster/bin/jobsetup; set -u; fi
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .into{fastqc_reads}
+    .set{fastqc_reads}
 
 // Second is to send all of through fastqc
 

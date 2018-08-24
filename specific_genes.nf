@@ -33,7 +33,7 @@ then set +u; source /cluster/bin/jobsetup; set -u; fi
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .into{ read_pairs }
+    .set{read_pairs}
 
 
 // if there are more than two data files, we need to cat them together
