@@ -96,7 +96,7 @@ process run_ariba_mlst_pred {
 
     """
     ${preCmd}
-    ariba run mlst_db/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
+    ariba run --threads $task.cpus mlst_db/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     echo -e "header\t" \$(head -1 ${pair_id}_ariba/mlst_report.tsv) > ${pair_id}_mlst_report.tsv
     echo -e "${pair_id}\t" \$(tail -1 ${pair_id}_ariba/mlst_report.tsv) >> ${pair_id}_mlst_report.tsv
     """
@@ -159,7 +159,7 @@ process run_ariba_amr_pred {
 
     """
     ${preCmd}
-    ariba run db_amr_prepareref ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
+    ariba run --threads $task.cpus db_amr_prepareref ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_amr_report.tsv
 
     """
@@ -217,7 +217,7 @@ process run_ariba_vir_pred {
 
     """
     ${preCmd}
-    ariba run db_vir_prepareref ${pair_id}_R*_concat.fq.gz \
+    ariba run --threads $task.cpus db_vir_prepareref ${pair_id}_R*_concat.fq.gz \
       ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_vir_report.tsv
 
