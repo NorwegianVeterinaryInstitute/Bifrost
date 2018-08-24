@@ -35,12 +35,11 @@ then set +u; source /cluster/bin/jobsetup; set -u; fi
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
-    .into{ fastqc_reads; read_pairs }
+    .into{fastqc_reads; read_pairs}
 
 // run_fastq and run_multiqc are exactly the same as qc_track
 process run_fastqc {
     publishDir "${params.out_dir}/fastqc", mode: 'copy'
-
     tag { pair_id }
 
     input:
@@ -153,7 +152,7 @@ process run_trim {
 /*
  * Build assembly with SPAdes
  */
-process spades_assembly {
+process run_spadesasm {
 	publishDir "${params.out_dir}/spades", mode: "copy"
 
 	tag { pair_id }
