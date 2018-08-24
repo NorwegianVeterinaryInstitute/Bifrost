@@ -43,6 +43,8 @@ process collate_data {
     // Note, not publishing these because that would mean
     // triple copies of the files on the system
 
+    tag {pair_id}
+
     input:
     set pair_id, file(reads) from read_pairs
 
@@ -64,6 +66,7 @@ process collate_data {
 // Download database database
 process run_ariba_mlst_prep {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    tag {'Dowloading schema'}
 
     output:
     file "mlst_db" into mlst_db
@@ -80,8 +83,8 @@ process run_ariba_mlst_prep {
 // Run ariba on each dataset
 
 process run_ariba_mlst_pred {
-    //tag {$pair_id}
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    tag {pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs_mlst
@@ -105,6 +108,7 @@ process run_ariba_mlst_pred {
 // Summarize MLST results
 process run_ariba_mlst_summarize {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    tag {'Summarizing mlst'}
 
     input:
     file pair_id_mlst_tsv from pair_id_mlst_tsv.collect()
@@ -128,6 +132,7 @@ process run_ariba_mlst_summarize {
 //  These three processes are for AMR prediction
 process run_ariba_amr_prep {
     publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    tag {'Dowloading AMR data'}
 
     output:
     file "db_amr_prepareref" into db_amr_prepareref
@@ -144,6 +149,7 @@ process run_ariba_amr_prep {
 
 process run_ariba_amr_pred {
     publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    tag{pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs_amr
@@ -168,6 +174,7 @@ process run_ariba_amr_pred {
 // Summarize AMR results
 process run_ariba_amr_summarize {
     publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    tag{'Summarizing AMR'}
 
     input:
     file pair_id_amr_tsv from pair_id_amr_tsv.collect()
@@ -187,6 +194,7 @@ process run_ariba_amr_summarize {
 //  These three processes are for virulence prediction
 process run_ariba_vir_prep {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    tag{'Downloading virulence data'}
 
     output:
     file "db_vir_prepareref" into db_vir_prepareref
@@ -203,6 +211,7 @@ process run_ariba_vir_prep {
 
 process run_ariba_vir_pred {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    tag{pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs_vir
@@ -227,6 +236,7 @@ process run_ariba_vir_pred {
 // Summarize virulence results
 process run_ariba_vir_summarize {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    tag{'Summarizing virulence'}
 
     input:
     file pair_id_vir_tsv from pair_id_vir_tsv.collect()

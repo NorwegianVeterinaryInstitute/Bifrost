@@ -41,7 +41,7 @@ Channel
 
 process run_fastqc {
     publishDir "${params.out_dir}/${params.fastqc}", mode: 'copy'
-    tag { pair_id }
+    tag {pair_id}
 
     input:
     set pair_id, file(reads) from fastqc_reads
