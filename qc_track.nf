@@ -41,7 +41,6 @@ Channel
 
 process run_fastqc {
     publishDir "${params.out_dir}/${params.fastqc}", mode: 'copy'
-
     tag { pair_id }
 
     input:
