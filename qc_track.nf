@@ -1,19 +1,16 @@
 #!/usr/bin/env nextflow
 
-// Note on coding: with Nextflow, we can use wildcards when specifying
-// output, but not input. Thus I'm using a dummy variable (dummyvar)
-// in some places to get things shipped from one process to another.
-// This eans that I'm controlling what files are shipped from one
-// process to the other via the output statement, not the input
-// statement.
+// This script is part of the Bifrost pipeline. Please see
+// the accompanying LICENSE document for licensing issues,
+// and the WIKI for this repo for instructions.
 
 // Which version do we have?
-if (workflow.commitId) {
-  version = "v0.2.0 $workflow.revision"
-}
-else {
-  version = "v0.2.0 local"
-}
+//if (workflow.commitId) {
+  version = "v0.2.0 ${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+//}
+//else {
+//  version = "v0.2.0 local"
+//}
 
 log.info ''
 log.info "================================================="
@@ -68,4 +65,12 @@ process run_multiqc {
     """
     multiqc fastqc_output
     """
+}
+// Display information about the completed run
+workflow.onComplete {
+	log.info "Nextflow Version:	$workflow.nextflow.version"
+  log.info "Command Line:		$workflow.commandLine"
+	log.info "Container:		$workflow.container"
+	log.info "Duration:		    $workflow.duration"
+	log.info "Output Directory:	$params.out_dir"
 }
