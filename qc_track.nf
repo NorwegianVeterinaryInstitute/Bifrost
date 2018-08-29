@@ -66,11 +66,3 @@ process run_multiqc {
     multiqc fastqc_output
     """
 }
-// Display information about the completed run
-workflow.onComplete {
-	log.info "Nextflow Version:	$workflow.nextflow.version"
-  log.info "Command Line:		$workflow.commandLine"
-	log.info "Container:		$workflow.container"
-	log.info "Duration:		    $workflow.duration"
-	log.info "Output Directory:	$params.out_dir"
-}

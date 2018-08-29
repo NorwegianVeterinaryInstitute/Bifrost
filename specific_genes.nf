@@ -252,14 +252,3 @@ process run_ariba_vir_summarize {
     ariba summary vir_summarized ${pair_id_vir_tsv}
     """
 }
-
-// Display information about the completed run
-// See https://www.nextflow.io/docs/latest/metadata.html for more
-// information about available onComplete options
-workflow.onComplete {
-	log.info "Nextflow Version:	$workflow.nextflow.version"
-  log.info "Command Line:		$workflow.commandLine"
-	log.info "Container:		$workflow.container"
-	log.info "Duration:		    $workflow.duration"
-	log.info "Output Directory:	$params.out_dir"
-}

@@ -279,14 +279,3 @@ process quast_eval {
 	    ${asm_list} \
 	"""
 }
-
-// Display information about the completed run
-// See https://www.nextflow.io/docs/latest/metadata.html for more
-// information about available onComplete options
-workflow.onComplete {
-	log.info "Nextflow Version:	$workflow.nextflow.version"
-  log.info "Command Line:		$workflow.commandLine"
-	log.info "Container:		$workflow.container"
-	log.info "Duration:		    $workflow.duration"
-	log.info "Output Directory:	$params.out_dir"
-}
