@@ -44,6 +44,7 @@ process collate_data {
     // triple copies of the files on the system
 
     tag {pair_id}
+    label 'one'
 
     input:
     set pair_id, file(reads) from read_pairs
@@ -67,6 +68,7 @@ process collate_data {
 process run_ariba_mlst_prep {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
     tag {'Dowloading schema'}
+    label 'one'
 
     output:
     file "mlst_db" into mlst_db
@@ -109,6 +111,7 @@ process run_ariba_mlst_pred {
 process run_ariba_mlst_summarize {
     publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
     tag {'Summarizing mlst'}
+    label 'one'
 
     input:
     file pair_id_mlst_tsv from pair_id_mlst_tsv.collect()
@@ -133,6 +136,7 @@ process run_ariba_mlst_summarize {
 process run_ariba_amr_prep {
     publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
     tag {'Dowloading AMR data'}
+    label 'one'
 
     output:
     file "db_amr_prepareref" into db_amr_prepareref
@@ -175,6 +179,7 @@ process run_ariba_amr_pred {
 process run_ariba_amr_summarize {
     publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
     tag{'Summarizing AMR'}
+    label 'one'
 
     input:
     file pair_id_amr_tsv from pair_id_amr_tsv.collect()
@@ -195,6 +200,7 @@ process run_ariba_amr_summarize {
 process run_ariba_vir_prep {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
     tag{'Downloading virulence data'}
+    label 'one'
 
     output:
     file "db_vir_prepareref" into db_vir_prepareref
@@ -237,6 +243,7 @@ process run_ariba_vir_pred {
 process run_ariba_vir_summarize {
     publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
     tag{'Summarizing virulence'}
+    label 'one'
 
     input:
     file pair_id_vir_tsv from pair_id_vir_tsv.collect()
@@ -251,15 +258,4 @@ process run_ariba_vir_summarize {
     ${preCmd}
     ariba summary vir_summarized ${pair_id_vir_tsv}
     """
-}
-
-// Display information about the completed run
-// See https://www.nextflow.io/docs/latest/metadata.html for more
-// information about available onComplete options
-workflow.onComplete {
-	log.info "Nextflow Version:	$workflow.nextflow.version"
-  log.info "Command Line:		$workflow.commandLine"
-	log.info "Container:		$workflow.container"
-	log.info "Duration:		    $workflow.duration"
-	log.info "Output Directory:	$params.out_dir"
 }
