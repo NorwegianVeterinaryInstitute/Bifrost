@@ -39,6 +39,7 @@ Channel
 process run_fastqc {
     publishDir "${params.out_dir}/${params.fastqc}", mode: 'copy'
     tag {pair_id}
+    label 'one'
 
     input:
     set pair_id, file(reads) from fastqc_reads
@@ -55,6 +56,7 @@ process run_fastqc {
 process run_multiqc {
     publishDir "${params.out_dir}/multiqc", mode: 'copy'
     tag {"multiqc"}
+    label 'one'
 
     input:
     file "fastqc_output/*" from fastqc_results.toSortedList()

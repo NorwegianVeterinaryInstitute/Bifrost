@@ -41,6 +41,7 @@ Channel
 process run_fastqc {
     publishDir "${params.out_dir}/fastqc", mode: 'copy'
     tag { pair_id }
+    label 'one'
 
     input:
     set pair_id, file(reads) from fastqc_reads
@@ -57,6 +58,7 @@ process run_fastqc {
 process run_multiqc {
     publishDir "${params.out_dir}/multiqc", mode: 'copy'
     tag {"multiqc"}
+    label 'one'
 
     input:
     file "fastqc_output/*" from fastqc_results.toSortedList()
@@ -74,8 +76,8 @@ process run_multiqc {
 process collate_data {
     // Note, not publishing these because that would mean
     // triple copies of the files on the system
-
     tag {pair_id}
+    label 'one'
 
     input:
     set pair_id, file(reads) from read_pairs
@@ -97,7 +99,6 @@ process collate_data {
 process run_strip {
 
 	publishDir "${params.out_dir}/bbduk", mode: "copy"
-
 	tag { pair_id }
 
 	input:
@@ -125,7 +126,6 @@ process run_strip {
  */
 process run_trim {
 	publishDir "${params.out_dir}/bbduk_trimmed", mode: "copy"
-
 	tag { pair_id }
 
     input:
@@ -154,8 +154,8 @@ process run_trim {
  */
 process run_spadesasm {
 	publishDir "${params.out_dir}/spades", mode: "copy"
-
 	tag { pair_id }
+  label 'longtime'
 
 	input:
 	set pair_id, file(reads) from reads_trimmed
@@ -184,8 +184,8 @@ process run_spadesasm {
  */
 process run_bwamem {
 	publishDir "${params.out_dir}/bwamem", mode: "copy"
-
 	tag { pair_id }
+  label 'longtime'
 
 	input:
 	set pair_id, file("${pair_id}_spades_scaffolds.fasta") from tobwa_results
@@ -209,7 +209,6 @@ process run_bwamem {
 
 process run_pilon {
   publishDir "${params.out_dir}/pilon", mode: "copy"
-
 	tag { pair_id }
 
 	input:
@@ -235,7 +234,6 @@ process run_pilon {
 */
 process run_prokka {
 	publishDir "${params.out_dir}/prokka", mode: "copy"
-
 	tag { pair_id }
 
 	input:
@@ -262,7 +260,6 @@ process quast_eval {
   // The output here is a directory in and of itself
   // thus not creating a new one
 	publishDir "${params.out_dir}/", mode: "copy"
-
 	tag { pair_id }
 
 	input:
