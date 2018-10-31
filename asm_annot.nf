@@ -138,13 +138,13 @@ process run_trim {
     """
     ${preCmd}
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
-    -baseout ${pair_id}_trimmed ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
+    -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
     SLIDINGWINDOW:${params.slidingwindow} \
     LEADING:${params.leading} TRAILING:${params.trailing} \
     MINLEN:${params.minlen} &> ${pair_id}_run.log
-    mv ${pair_id}_trimmed_1P ${pair_id}_R1_concat_stripped_trimmed.fq.gz
-    mv ${pair_id}_trimmed_2P ${pair_id}_R2_concat_stripped_trimmed.fq.gz
-    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_S_concat_stripped_trimmed.fq.gz
+    mv ${pair_id}_trimmed_1P.fq.gz ${pair_id}_R1_concat_stripped_trimmed.fq.gz
+    mv ${pair_id}_trimmed_2P.fq.gz ${pair_id}_R2_concat_stripped_trimmed.fq.gz
+    cat ${pair_id}_trimmed_1U.fq.gz ${pair_id}_trimmed_2U.fq.gz > ${pair_id}_S_concat_stripped_trimmed.fq.gz
     """
 }
 
