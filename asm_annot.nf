@@ -39,7 +39,7 @@ Channel
 
 // run_fastq and run_multiqc are exactly the same as qc_track
 process run_fastqc {
-    publishDir "${params.out_dir}/fastqc", mode: 'copy'
+    publishDir "${params.out_dir}/fastqc", mode: "${params.savemode}"
     tag { pair_id }
     label 'one'
 
@@ -56,7 +56,7 @@ process run_fastqc {
 }
 
 process run_multiqc {
-    publishDir "${params.out_dir}/multiqc", mode: 'copy'
+    publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
     tag {"multiqc"}
     label 'one'
 
@@ -98,7 +98,7 @@ process collate_data {
  */
 process run_strip {
 
-    publishDir "${params.out_dir}/bbduk", mode: "copy"
+    publishDir "${params.out_dir}/bbduk", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -125,7 +125,7 @@ process run_strip {
  * Remove adapter sequences and low quality base pairs with Trimmomatic
  */
 process run_trim {
-    publishDir "${params.out_dir}/bbduk_trimmed", mode: "copy"
+    publishDir "${params.out_dir}/bbduk_trimmed", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -153,7 +153,7 @@ process run_trim {
  * Build assembly with SPAdes
  */
 process run_spadesasm {
-     publishDir "${params.out_dir}/spades", mode: "copy"
+     publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
      tag { pair_id }
      label 'longtime'
 
@@ -183,7 +183,7 @@ process run_spadesasm {
  * Map reads to the spades assembly
  */
 process run_bwamem {
-     publishDir "${params.out_dir}/bwamem", mode: "copy"
+     publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
      tag { pair_id }
      label 'longtime'
 
@@ -208,7 +208,7 @@ process run_bwamem {
 */
 
 process run_pilon {
-    publishDir "${params.out_dir}/pilon", mode: "copy"
+    publishDir "${params.out_dir}/pilon", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -232,7 +232,7 @@ process run_pilon {
 * Annotation using PROKKA
 */
 process run_prokka {
-    publishDir "${params.out_dir}/prokka", mode: "copy"
+    publishDir "${params.out_dir}/prokka", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -257,7 +257,7 @@ process run_prokka {
 process quast_eval {
     // The output here is a directory in and of itself
     // thus not creating a new one
-    publishDir "${params.out_dir}/", mode: "copy"
+    publishDir "${params.out_dir}/", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
