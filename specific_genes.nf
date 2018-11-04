@@ -66,7 +66,7 @@ process collate_data {
 
 // Download database database
 process run_ariba_mlst_prep {
-    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.mlst_results}", mode: "${params.savemode}"
     tag {'Dowloading schema'}
     label 'one'
 
@@ -85,7 +85,7 @@ process run_ariba_mlst_prep {
 // Run ariba on each dataset
 
 process run_ariba_mlst_pred {
-    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.mlst_results}", mode: "${params.savemode}"
     tag {pair_id}
 
     input:
@@ -109,7 +109,7 @@ process run_ariba_mlst_pred {
 
 // Summarize MLST results
 process run_ariba_mlst_summarize {
-    publishDir params.out_dir + "/" + params.mlst_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.mlst_results}", mode: "${params.savemode}"
     tag {'Summarizing mlst'}
     label 'one'
 
@@ -134,7 +134,7 @@ process run_ariba_mlst_summarize {
 
 //  These three processes are for AMR prediction
 process run_ariba_amr_prep {
-    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.amr_results}", mode: "${params.savemode}"
     tag {'Dowloading AMR data'}
     label 'one'
 
@@ -152,7 +152,7 @@ process run_ariba_amr_prep {
 }
 
 process run_ariba_amr_pred {
-    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.amr_results}", mode: "${params.savemode}"
     tag{pair_id}
 
     input:
@@ -177,7 +177,7 @@ process run_ariba_amr_pred {
 
 // Summarize AMR results
 process run_ariba_amr_summarize {
-    publishDir params.out_dir + "/" + params.amr_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.amr_results}", mode: "${params.savemode}"
     tag{'Summarizing AMR'}
     label 'one'
 
@@ -198,7 +198,7 @@ process run_ariba_amr_summarize {
 
 //  These three processes are for virulence prediction
 process run_ariba_vir_prep {
-    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.vir_results}", mode: "${params.savemode}"
     tag{'Downloading virulence data'}
     label 'one'
 
@@ -216,7 +216,7 @@ process run_ariba_vir_prep {
 }
 
 process run_ariba_vir_pred {
-    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.vir_results}", mode: "${params.savemode}"
     tag{pair_id}
 
     input:
@@ -241,7 +241,7 @@ process run_ariba_vir_pred {
 
 // Summarize virulence results
 process run_ariba_vir_summarize {
-    publishDir params.out_dir + "/" + params.vir_results, mode: 'copy'
+    publishDir "${params.out_dir}" + "/" + "${params.vir_results}", mode: "${params.savemode}"
     tag{'Summarizing virulence'}
     label 'one'
 

@@ -39,7 +39,7 @@ Channel
 
 // run_fastq and run_multiqc are exactly the same as qc_track
 process run_fastqc {
-    publishDir "${params.out_dir}/fastqc", mode: 'copy'
+    publishDir "${params.out_dir}/fastqc", mode: "${params.savemode}"
     tag { pair_id }
     label 'one'
 
@@ -50,13 +50,14 @@ process run_fastqc {
     file "$pair_id" into fastqc_results
 
     """
+    ${preCmd}
     mkdir ${pair_id}
     fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
 }
 
 process run_multiqc {
-    publishDir "${params.out_dir}/multiqc", mode: 'copy'
+    publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
     tag {"multiqc"}
     label 'one'
 
@@ -67,6 +68,7 @@ process run_multiqc {
     file "multiqc_report.html" into multiqc_report
 
     """
+    ${preCmd}
     multiqc fastqc_output
     """
 }
@@ -98,7 +100,7 @@ process collate_data {
  */
 process run_strip {
 
-    publishDir "${params.out_dir}/bbduk", mode: "copy"
+    publishDir "${params.out_dir}/bbduk", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -125,7 +127,7 @@ process run_strip {
  * Remove adapter sequences and low quality base pairs with Trimmomatic
  */
 process run_trim {
-    publishDir "${params.out_dir}/bbduk_trimmed", mode: "copy"
+    publishDir "${params.out_dir}/bbduk_trimmed", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -138,13 +140,13 @@ process run_trim {
     """
     ${preCmd}
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
-    -baseout ${pair_id}_trimmed ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
+    -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
     SLIDINGWINDOW:${params.slidingwindow} \
     LEADING:${params.leading} TRAILING:${params.trailing} \
     MINLEN:${params.minlen} &> ${pair_id}_run.log
-    mv ${pair_id}_trimmed_1P ${pair_id}_R1_concat_stripped_trimmed.fq.gz
-    mv ${pair_id}_trimmed_2P ${pair_id}_R2_concat_stripped_trimmed.fq.gz
-    cat ${pair_id}_trimmed_1U ${pair_id}_trimmed_2U > ${pair_id}_S_concat_stripped_trimmed.fq.gz
+    mv ${pair_id}_trimmed_1P.fq.gz ${pair_id}_R1_concat_stripped_trimmed.fq.gz
+    mv ${pair_id}_trimmed_2P.fq.gz ${pair_id}_R2_concat_stripped_trimmed.fq.gz
+    cat ${pair_id}_trimmed_1U.fq.gz ${pair_id}_trimmed_2U.fq.gz > ${pair_id}_S_concat_stripped_trimmed.fq.gz
     """
 }
 
@@ -153,7 +155,7 @@ process run_trim {
  * Build assembly with SPAdes
  */
 process run_spadesasm {
-     publishDir "${params.out_dir}/spades", mode: "copy"
+     publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
      tag { pair_id }
      label 'longtime'
 
@@ -183,7 +185,7 @@ process run_spadesasm {
  * Map reads to the spades assembly
  */
 process run_bwamem {
-     publishDir "${params.out_dir}/bwamem", mode: "copy"
+     publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
      tag { pair_id }
      label 'longtime'
 
@@ -196,6 +198,7 @@ process run_bwamem {
      file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
      """
+     ${preCmd}
      bwa index ${pair_id}_spades_scaffolds.fasta
      bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
      *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
@@ -208,7 +211,7 @@ process run_bwamem {
 */
 
 process run_pilon {
-    publishDir "${params.out_dir}/pilon", mode: "copy"
+    publishDir "${params.out_dir}/pilon", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -222,6 +225,8 @@ process run_pilon {
     file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
     """
+    ${preCmd}
+    export _JAVA_OPTIONS=$task.javaopts
     pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
     --changes --vcfqe &> ${pair_id}_pilon_spades.log
@@ -232,7 +237,7 @@ process run_pilon {
 * Annotation using PROKKA
 */
 process run_prokka {
-    publishDir "${params.out_dir}/prokka", mode: "copy"
+    publishDir "${params.out_dir}/prokka", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -257,7 +262,7 @@ process run_prokka {
 process quast_eval {
     // The output here is a directory in and of itself
     // thus not creating a new one
-    publishDir "${params.out_dir}/", mode: "copy"
+    publishDir "${params.out_dir}/", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
