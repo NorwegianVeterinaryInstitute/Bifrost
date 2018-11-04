@@ -50,6 +50,7 @@ process run_fastqc {
     file "$pair_id" into fastqc_results
 
     """
+    ${preCmd}
     mkdir ${pair_id}
     fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
@@ -67,6 +68,7 @@ process run_multiqc {
     file "multiqc_report.html" into multiqc_report
 
     """
+    ${preCmd}
     multiqc fastqc_output
     """
 }
@@ -196,6 +198,7 @@ process run_bwamem {
      file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
      """
+     ${preCmd}
      bwa index ${pair_id}_spades_scaffolds.fasta
      bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
      *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
@@ -222,6 +225,7 @@ process run_pilon {
     file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
     """
+    ${preCmd}
     pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
     --changes --vcfqe &> ${pair_id}_pilon_spades.log

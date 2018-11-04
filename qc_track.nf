@@ -48,6 +48,7 @@ process run_fastqc {
     file "$pair_id" into fastqc_results
 
     """
+    ${preCmd}
     mkdir ${pair_id}
     fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
@@ -65,6 +66,7 @@ process run_multiqc {
     file "multiqc_report.html" into multiqc_report
 
     """
+    ${preCmd}
     multiqc fastqc_output
     """
 }
