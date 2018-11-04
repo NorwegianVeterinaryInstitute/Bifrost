@@ -226,6 +226,7 @@ process run_pilon {
 
     """
     ${preCmd}
+    export _JAVA_OPTIONS=$task.javaopts
     pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
     --changes --vcfqe &> ${pair_id}_pilon_spades.log
