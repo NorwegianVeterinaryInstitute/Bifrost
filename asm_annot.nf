@@ -281,6 +281,6 @@ process quast_eval {
     ${preCmd}
     quast --threads $task.cpus -o quast_evaluation_all \
     -G ${params.quast_genes} -R ${params.quast_ref} \
-    ${asm_list} \
+    --scaffolds ${asm_list}
     """
 }
