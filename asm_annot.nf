@@ -163,8 +163,9 @@ process run_spadesasm {
      set pair_id, file(reads) from reads_trimmed
 
      output:
-     set pair_id, file("${pair_id}_spades_scaffolds.fasta") \
+     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
      into (assembly_results, tobwa_results)
+     file "${pair_id}_spades_scaffolds.fasta"
      file "${pair_id}_spades.log"
 
      """
@@ -173,6 +174,9 @@ process run_spadesasm {
      -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
      -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
      -s ${pair_id}_S_concat_stripped_trimmed.fq.gz -t $task.cpus -o ${pair_id}_spades
+     filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
+        -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
+        -m ${params.min_contig_len}
      cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
      cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
      """
@@ -190,7 +194,7 @@ process run_bwamem {
      label 'longtime'
 
      input:
-     set pair_id, file("${pair_id}_spades_scaffolds.fasta"), \
+     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta"), \
      file(reads) from tobwa_results.join(pilon_reads)
 
      output:
@@ -199,8 +203,8 @@ process run_bwamem {
 
      """
      ${preCmd}
-     bwa index ${pair_id}_spades_scaffolds.fasta
-     bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds.fasta \
+     bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
+     bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
      *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
      samtools index ${pair_id}_mapped_sorted.bam
      """
@@ -217,7 +221,8 @@ process run_pilon {
     input:
     set pair_id, file("${pair_id}_mapped_sorted.bam"), \
     file("${pair_id}_mapped_sorted.bam.bai"), \
-    file("${pair_id}_spades_scaffolds.fasta") from bwamem_results.join(assembly_results)
+    file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
+      from bwamem_results.join(assembly_results)
 
     output:
     set pair_id, file("${pair_id}_pilon_spades.*") into pilon_results
@@ -227,7 +232,7 @@ process run_pilon {
     """
     ${preCmd}
     export _JAVA_OPTIONS=$task.javaopts
-    pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds.fasta \
+    pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
     --changes --vcfqe &> ${pair_id}_pilon_spades.log
     """
