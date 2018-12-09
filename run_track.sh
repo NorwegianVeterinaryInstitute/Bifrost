@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 # Wrapper script for running nextflow pipelines more reproducibly
 
