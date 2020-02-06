@@ -25,10 +25,6 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
-// Needed to run on the Abel cluster
-preCmd = """
-if [ -f /cluster/bin/jobsetup ];
-then set +u; source /cluster/bin/jobsetup; set -u; fi
 """
 
 // First, define the input data that go into input channels
@@ -50,7 +46,6 @@ process run_fastqc {
     file "$pair_id" into fastqc_results
 
     """
-    ${preCmd}
     mkdir ${pair_id}
     fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
@@ -68,7 +63,6 @@ process run_multiqc {
     file "multiqc_report.html" into multiqc_report
 
     """
-    ${preCmd}
     multiqc fastqc_output
     """
 }
@@ -88,7 +82,6 @@ process collate_data {
     set pair_id, file("${pair_id}*_concat.fq.gz") into (reads, pilon_reads)
 
     """
-    ${preCmd}
     cat ${pair_id}*R1* > ${pair_id}_R1_concat.fq.gz
     cat ${pair_id}*R2* > ${pair_id}_R2_concat.fq.gz
     """
@@ -111,7 +104,6 @@ process run_strip {
     file "${pair_id}_bbduk_output.log"
 
     """
-    ${preCmd}
     bbduk.sh threads=$task.cpus ref=${params.stripgenome} \
     in1=${pair_id}_R1_concat.fq.gz \
     in2=${pair_id}_R2_concat.fq.gz \
@@ -138,7 +130,6 @@ process run_trim {
     file "${pair_id}_concat_stripped_trimmed.log"
 
     """
-    ${preCmd}
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
     -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
     SLIDINGWINDOW:${params.slidingwindow} \
@@ -169,7 +160,6 @@ process run_spadesasm {
      file "${pair_id}_spades.log"
 
      """
-     ${preCmd}
      spades.py ${params.careful} --cov-cutoff=${params.cov_cutoff} \
      -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
      -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
@@ -202,7 +192,6 @@ process run_bwamem {
      file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
      """
-     ${preCmd}
      bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
      bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
      *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
@@ -230,7 +219,6 @@ process run_pilon {
     file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
     """
-    ${preCmd}
     export _JAVA_OPTIONS=$task.javaopts
     pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
@@ -252,7 +240,6 @@ process run_prokka {
     set pair_id, file("${pair_id}.*") into annotation_results
 
     """
-    ${preCmd}
     prokka --compliant --force --usegenus --cpus $task.cpus \
     --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
     --genus ${params.genus} --species ${params.species} \
@@ -278,7 +265,6 @@ process quast_eval {
     file quast_evaluation_all into quast_evaluation_all
 
     """
-    ${preCmd}
     quast --threads $task.cpus -o quast_evaluation_all \
     -G ${params.quast_genes} -R ${params.quast_ref} \
     --scaffolds ${asm_list}
