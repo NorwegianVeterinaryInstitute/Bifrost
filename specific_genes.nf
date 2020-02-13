@@ -24,8 +24,6 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
-"""
-
 // First, define the input data that go into input channels
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
