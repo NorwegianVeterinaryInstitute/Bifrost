@@ -264,7 +264,6 @@ process quast_eval {
 
     """
     quast --threads $task.cpus -o quast_evaluation_all \
-    -g ${params.quast_genes} -R ${params.quast_ref} \
-    --scaffolds ${asm_list}
+    -g ${params.quast_genes} -R ${params.quast_ref} ${asm_list}
     """
 }
