@@ -26,5 +26,3 @@ class SeqFileName:
             if field.startswith("L00"):
                 lane = field
         return lane
-
-
