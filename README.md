@@ -16,4 +16,4 @@ This software is published under the BSD 3-clause license. See the LICENSE file 
 
 # How to use
 
-The [Wiki](https://github.com/karinlag/Bifrost/wiki) contains information about how to install and run.
+The [Wiki](https://github.com/NorwegianVeterinaryInstitute/Bifrost/wiki) contains information about how to install and run.
