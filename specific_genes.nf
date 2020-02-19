@@ -24,11 +24,6 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
-preCmd = """
-if [ -f /cluster/bin/jobsetup ];
-then set +u; source /cluster/bin/jobsetup; set -u; fi
-"""
-
 // First, define the input data that go into input channels
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
@@ -55,7 +50,6 @@ process collate_data {
       (read_pairs_mlst, read_pairs_amr, read_pairs_vir)
 
     """
-    ${preCmd}
     cat ${pair_id}*R1* > ${pair_id}_R1_concat.fq.gz
     cat ${pair_id}*R2* > ${pair_id}_R2_concat.fq.gz
     """
@@ -77,7 +71,6 @@ process run_ariba_mlst_prep {
     params.do_mlst == "yes"
 
     """
-    ${preCmd}
     ariba pubmlstget "${params.mlst_scheme}" mlst_db
     """
 }
@@ -100,7 +93,6 @@ process run_ariba_mlst_pred {
     params.do_mlst == "yes"
 
     """
-    ${preCmd}
     ariba run --threads $task.cpus mlst_db/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     echo -e "header\t" \$(head -1 ${pair_id}_ariba/mlst_report.tsv) > ${pair_id}_mlst_report.tsv
     echo -e "${pair_id}\t" \$(tail -1 ${pair_id}_ariba/mlst_report.tsv) >> ${pair_id}_mlst_report.tsv
@@ -123,7 +115,6 @@ process run_ariba_mlst_summarize {
     params.do_mlst == "yes"
 
     """
-    ${preCmd}
     cat ${pair_id_mlst_tsv} >> mlst_summarized_results_tmp.tsv
     head -1 mlst_summarized_results_tmp.tsv > mlst_summarized_results.tsv
     cat mlst_summarized_results_tmp.tsv | grep -v "ST" >> mlst_summarized_results.tsv
@@ -145,7 +136,6 @@ process run_ariba_amr_prep {
     params.do_amr == "yes"
 
     """
-    ${preCmd}
     ariba getref ${params.amr_db} amr_db
     ariba prepareref -f amr_db.fa -m amr_db.tsv db_amr_prepareref
     """
@@ -168,7 +158,6 @@ process run_ariba_amr_pred {
 
 
     """
-    ${preCmd}
     ariba run --threads $task.cpus db_amr_prepareref ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_amr_report.tsv
 
@@ -191,7 +180,6 @@ process run_ariba_amr_summarize {
     params.do_amr == "yes"
 
     """
-    ${preCmd}
     ariba summary amr_summarized ${pair_id_amr_tsv}
     """
 }
@@ -209,7 +197,6 @@ process run_ariba_vir_prep {
     params.do_vir == "yes"
 
     """
-    ${preCmd}
     ariba getref ${params.vir_db} vir_db
     ariba prepareref -f vir_db.fa -m vir_db.tsv db_vir_prepareref
     """
@@ -231,7 +218,6 @@ process run_ariba_vir_pred {
     params.do_vir == "yes"
 
     """
-    ${preCmd}
     ariba run --threads $task.cpus db_vir_prepareref ${pair_id}_R*_concat.fq.gz \
       ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_vir_report.tsv
@@ -255,7 +241,6 @@ process run_ariba_vir_summarize {
     params.do_vir == "yes"
 
     """
-    ${preCmd}
     ariba summary vir_summarized ${pair_id_vir_tsv}
     """
 }

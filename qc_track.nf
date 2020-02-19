@@ -22,12 +22,6 @@ log.info "Results can be found in : ${params.out_dir}"
 log.info "================================================="
 log.info ""
 
-// Needed to run on the Abel cluster
-preCmd = """
-if [ -f /cluster/bin/jobsetup ];
-then set +u; source /cluster/bin/jobsetup; set -u; fi
-"""
-
 // First, define the input data that go into input channels
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
@@ -48,7 +42,6 @@ process run_fastqc {
     file "$pair_id" into fastqc_results
 
     """
-    ${preCmd}
     mkdir ${pair_id}
     fastqc -q ${reads} -o ${pair_id} -t $task.cpus
     """
@@ -66,7 +59,6 @@ process run_multiqc {
     file "multiqc_report.html" into multiqc_report
 
     """
-    ${preCmd}
     multiqc fastqc_output
     """
 }
