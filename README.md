@@ -1,3 +1,12 @@
+[![DOI](https://zenodo.org/badge/82833773.svg)](https://zenodo.org/badge/latestdoi/82833773)
+
+# Citation
+
+Please cite current version as:
+
+Karin Lagesen. (2020, February 19). NorwegianVeterinaryInstitute Bifrost pipeline - Saga release (Version v1.2). Zenodo. http://doi.org/10.5281/zenodo.3841963
+
+
 # Disclaimer
 
 This is pre-publication software that is currently under active development. Use it at your own risk. Bug reports are welcome, but a user cannot depend on getting support at this time.
