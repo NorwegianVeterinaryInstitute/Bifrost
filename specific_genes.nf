@@ -17,7 +17,7 @@ log.info " Bifrost specific gene finding with Ariba v${version}"
 log.info "================================================="
 log.info "Reads                   : ${params.reads}"
 log.info "#files in read set      : ${params.setsize}"
-log.info "MLST Scheme used        : ${params.mlst_scheme}"
+log.info "MLST Scheme used        : ${params.mlst_db}"
 log.info "AMR database            : ${params.amr_db}"
 log.info "Virulence db            : ${params.vir_db}"
 log.info "Results can be found in : ${params.out_dir}"
@@ -29,6 +29,15 @@ Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
     .set{read_pairs}
+
+mlst_db = Channel
+    .fromPath(params.mlst_db)
+
+amr_db = Channel
+    .fromPath(params.amr_db)
+
+vir_db = Channel
+    .fromPath(params.vir_db)
 
 
 // if there are more than two data files, we need to cat them together
@@ -56,24 +65,7 @@ process collate_data {
 }
 
 
-// The following three processes are for MLST finding
-
-// Download database database
-process run_ariba_mlst_prep {
-    publishDir "${params.out_dir}" + "/" + "${params.mlst_results}", mode: "${params.savemode}"
-    tag {'Dowloading schema'}
-    label 'one'
-
-    output:
-    file "mlst_db" into mlst_db
-
-    when:
-    params.do_mlst == "yes"
-
-    """
-    ariba pubmlstget "${params.mlst_scheme}" mlst_db
-    """
-}
+// The following two processes are for MLST finding
 
 // Run ariba on each dataset
 
@@ -123,31 +115,14 @@ process run_ariba_mlst_summarize {
 
 
 
-//  These three processes are for AMR prediction
-process run_ariba_amr_prep {
-    publishDir "${params.out_dir}" + "/" + "${params.amr_results}", mode: "${params.savemode}"
-    tag {'Dowloading AMR data'}
-    label 'one'
-
-    output:
-    file "db_amr_prepareref" into db_amr_prepareref
-
-    when:
-    params.do_amr == "yes"
-
-    """
-    ariba getref ${params.amr_db} amr_db
-    ariba prepareref -f amr_db.fa -m amr_db.tsv db_amr_prepareref
-    """
-}
-
+//  These two processes are for AMR prediction
 process run_ariba_amr_pred {
     publishDir "${params.out_dir}" + "/" + "${params.amr_results}", mode: "${params.savemode}"
     tag{pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs_amr
-    file "db_amr_prepareref" from db_amr_prepareref
+    file "db_amr_prepareref" from amr_db
 
     output:
     file "${pair_id}_amr_report.tsv" into pair_id_amr_tsv
@@ -184,31 +159,14 @@ process run_ariba_amr_summarize {
     """
 }
 
-//  These three processes are for virulence prediction
-process run_ariba_vir_prep {
-    publishDir "${params.out_dir}" + "/" + "${params.vir_results}", mode: "${params.savemode}"
-    tag{'Downloading virulence data'}
-    label 'one'
-
-    output:
-    file "db_vir_prepareref" into db_vir_prepareref
-
-    when:
-    params.do_vir == "yes"
-
-    """
-    ariba getref ${params.vir_db} vir_db
-    ariba prepareref -f vir_db.fa -m vir_db.tsv db_vir_prepareref
-    """
-}
-
+//  These two processes are for virulence prediction
 process run_ariba_vir_pred {
     publishDir "${params.out_dir}" + "/" + "${params.vir_results}", mode: "${params.savemode}"
     tag{pair_id}
 
     input:
     set pair_id, file(reads) from read_pairs_vir
-    file "db_vir_prepareref" from db_vir_prepareref
+    file "db_vir_prepareref" from vir_db
 
     output:
     file "${pair_id}_vir_report.tsv" into pair_id_vir_tsv
