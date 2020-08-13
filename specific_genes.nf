@@ -25,19 +25,20 @@ log.info "================================================="
 log.info ""
 
 // First, define the input data that go into input channels
+// The databases are input as value channels to enable reuse
 Channel
     .fromFilePairs( params.reads, size:params.setsize )
     .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }
     .set{read_pairs}
 
 mlst_db = Channel
-    .fromPath(params.mlst_db)
+    .value(params.mlst_db)
 
 amr_db = Channel
-    .fromPath(params.amr_db)
+    .value(params.amr_db)
 
 vir_db = Channel
-    .fromPath(params.vir_db)
+    .value(params.vir_db)
 
 
 // if there are more than two data files, we need to cat them together
@@ -75,7 +76,7 @@ process run_ariba_mlst_pred {
 
     input:
     set pair_id, file(reads) from read_pairs_mlst
-    file "mlst_db" from mlst_db
+    path mlst_db from mlst_db
 
     output:
     file "${pair_id}_mlst_report.tsv" into pair_id_mlst_tsv
@@ -85,7 +86,7 @@ process run_ariba_mlst_pred {
     params.do_mlst == "yes"
 
     """
-    ariba run --threads $task.cpus mlst_db/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
+    ariba run --threads $task.cpus ${mlst_db}/ref_db ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     echo -e "header\t" \$(head -1 ${pair_id}_ariba/mlst_report.tsv) > ${pair_id}_mlst_report.tsv
     echo -e "${pair_id}\t" \$(tail -1 ${pair_id}_ariba/mlst_report.tsv) >> ${pair_id}_mlst_report.tsv
     """
@@ -122,7 +123,7 @@ process run_ariba_amr_pred {
 
     input:
     set pair_id, file(reads) from read_pairs_amr
-    file "db_amr_prepareref" from amr_db
+    path db_amr_prepareref from amr_db
 
     output:
     file "${pair_id}_amr_report.tsv" into pair_id_amr_tsv
@@ -133,7 +134,7 @@ process run_ariba_amr_pred {
 
 
     """
-    ariba run --threads $task.cpus db_amr_prepareref ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
+    ariba run --threads $task.cpus ${db_amr_prepareref} ${pair_id}_R*_concat.fq.gz ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_amr_report.tsv
 
     """
@@ -166,7 +167,7 @@ process run_ariba_vir_pred {
 
     input:
     set pair_id, file(reads) from read_pairs_vir
-    file "db_vir_prepareref" from vir_db
+    path db_vir_prepareref from vir_db
 
     output:
     file "${pair_id}_vir_report.tsv" into pair_id_vir_tsv
@@ -176,7 +177,7 @@ process run_ariba_vir_pred {
     params.do_vir == "yes"
 
     """
-    ariba run --threads $task.cpus db_vir_prepareref ${pair_id}_R*_concat.fq.gz \
+    ariba run --threads $task.cpus ${db_vir_prepareref} ${pair_id}_R*_concat.fq.gz \
       ${pair_id}_ariba &> ariba.out
     cp ${pair_id}_ariba/report.tsv ${pair_id}_vir_report.tsv
 
