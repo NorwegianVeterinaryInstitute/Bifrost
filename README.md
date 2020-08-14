@@ -2,7 +2,7 @@
 
 # Citation
 
-Please check the [Zenodo webiste](https://zenodo.org/deposit?page=1&size=20&q=conceptrecid:3841962&sort=-version) to check which release to cite for your work. 
+Please check the [Zenodo website](https://zenodo.org/deposit?page=1&size=20&q=conceptrecid:3841962&sort=-version) to check which release to cite for your work. 
 
 
 # Disclaimer
