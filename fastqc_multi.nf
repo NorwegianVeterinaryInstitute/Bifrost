@@ -31,6 +31,7 @@ Channel
 // Second is to send all of through fastqc
 
 process run_fastqc {
+    conda "${params.condahome}/bifrost2022-fastqc"
     publishDir "${params.out_dir}/${params.fastqc}", mode: "${params.savemode}"
     tag {pair_id}
     label 'one'
@@ -48,6 +49,7 @@ process run_fastqc {
 }
 
 process run_multiqc {
+    conda "${params.condahome}/bifrost2022-multiqc"
     publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
     tag {"multiqc"}
     label 'one'
