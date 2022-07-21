@@ -134,8 +134,8 @@ process run_trim {
     """
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
     -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
-    SLIDINGWINDOW:${params.slidingwindow} \
     LEADING:${params.leading} TRAILING:${params.trailing} \
+    SLIDINGWINDOW:${params.slidingwindow} \
     MINLEN:${params.minlen} &> ${pair_id}_run.log
     mv ${pair_id}_trimmed_1P.fq.gz ${pair_id}_R1_concat_stripped_trimmed.fq.gz
     mv ${pair_id}_trimmed_2P.fq.gz ${pair_id}_R2_concat_stripped_trimmed.fq.gz
