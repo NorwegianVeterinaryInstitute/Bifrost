@@ -162,11 +162,15 @@ process run_spadesasm {
      file "${pair_id}_spades_scaffolds.fasta"
      file "${pair_id}_spades.log"
 
+
+     // For 2022 version, params.careful was removed to do --isolate and --only-assembler
      """
-     spades.py ${params.careful} --cov-cutoff=${params.cov_cutoff} \
+     spades.py --cov-cutoff=${params.cov_cutoff} \
      -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
      -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
-     -s ${pair_id}_S_concat_stripped_trimmed.fq.gz -t $task.cpus -o ${pair_id}_spades
+     -s ${pair_id}_S_concat_stripped_trimmed.fq.gz \
+     -t $task.cpus --isolate --only-assembler \
+     -o ${pair_id}_spades
      filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
         -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
         -m ${params.min_contig_len}
