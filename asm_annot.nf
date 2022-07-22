@@ -148,34 +148,34 @@ process run_trim {
  * Build assembly with SPAdes
  */
 process run_spadesasm {
-     conda "${params.condahome}/bifrost2022-spades"
-     publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
-     tag { pair_id }
-     label 'longtime'
+    conda "${params.condahome}/bifrost2022-spades"
+    publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
+    tag { pair_id }
+    label 'longtime'
 
-     input:
-     set pair_id, file(reads) from reads_trimmed
+    input:
+    set pair_id, file(reads) from reads_trimmed
 
-     output:
-     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
-     into (assembly_results, tobwa_results)
-     file "${pair_id}_spades_scaffolds.fasta"
-     file "${pair_id}_spades.log"
+    output:
+    set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
+    into (assembly_results, tobwa_results)
+    file "${pair_id}_spades_scaffolds.fasta"
+    file "${pair_id}_spades.log"
 
 
-     // For 2022 version, params.careful was removed to do --isolate and --only-assembler
-     """
-     spades.py --cov-cutoff=${params.cov_cutoff} \
-     -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
-     -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
-     -s ${pair_id}_S_concat_stripped_trimmed.fq.gz \
-     -t $task.cpus --isolate --only-assembler \
-     -o ${pair_id}_spades
-     filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
-        -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
-        -m ${params.min_contig_len}
-     cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
-     cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
+    // For 2022 version, params.careful was removed to do --isolate and --only-assembler
+    """
+    spades.py --cov-cutoff=${params.cov_cutoff} \
+    -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
+    -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
+    -s ${pair_id}_S_concat_stripped_trimmed.fq.gz \
+    -t $task.cpus --isolate --only-assembler \
+    -o ${pair_id}_spades
+    filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
+       -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
+       -m ${params.min_contig_len}
+    cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
+    cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
      """
 }
 
@@ -187,24 +187,24 @@ process run_spadesasm {
  */
 process run_bwamem {
     conda "${params.condahome}/bifrost2022-bwa"
-     publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
-     tag { pair_id }
-     label 'longtime'
+    publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
+    tag { pair_id }
+    label 'longtime'
 
-     input:
-     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta"), \
-     file(reads) from tobwa_results.join(pilon_reads)
+    input:
+    set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta"), \
+    file(reads) from tobwa_results.join(pilon_reads)
 
-     output:
-     set pair_id, file("${pair_id}_mapped_sorted.bam"), \
-     file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
+    output:
+    set pair_id, file("${pair_id}_mapped_sorted.bam"), \
+    file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
-     """
-     bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
-     bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
-     *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
-     samtools index ${pair_id}_mapped_sorted.bam
-     """
+    """
+    bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
+    bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
+    *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
+    samtools index ${pair_id}_mapped_sorted.bam
+    """
 }
 
 /*
@@ -264,6 +264,7 @@ process run_prokka {
 process quast_eval {
     // The output here is a directory in and of itself
     // thus not creating a new one
+    conda "${params.condahome}/bifrost2022-quast"
     publishDir "${params.out_dir}/", mode: "${params.savemode}"
     tag { pair_id }
 
