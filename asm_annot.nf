@@ -33,8 +33,6 @@ Channel
 
 // run_fastq and run_multiqc are exactly the same as qc_track
 process run_fastqc {
-    conda "${params.condahome}/bifrost2022-fastqc"
-
     publishDir "${params.out_dir}/fastqc", mode: "${params.savemode}"
     tag { pair_id }
     label 'one'
@@ -52,7 +50,6 @@ process run_fastqc {
 }
 
 process run_multiqc {
-    conda "${params.condahome}/bifrost2022-multiqc"
     publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
     tag {"multiqc"}
     label 'one'
@@ -93,7 +90,6 @@ process collate_data {
  * Strip PhiX with bbmap
  */
 process run_strip {
-    conda "${params.condahome}/bifrost2022-bbtools"
     publishDir "${params.out_dir}/bbduk", mode: "${params.savemode}"
     tag { pair_id }
 
@@ -120,7 +116,6 @@ process run_strip {
  * Remove adapter sequences and low quality base pairs with Trimmomatic
  */
 process run_trim {
-    conda "${params.condahome}/bifrost2022-trimmomatic"
     publishDir "${params.out_dir}/bbduk_trimmed", mode: "${params.savemode}"
     tag { pair_id }
 
@@ -148,7 +143,6 @@ process run_trim {
  * Build assembly with SPAdes
  */
 process run_spadesasm {
-    conda "${params.condahome}/bifrost2022-spades"
     publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
     tag { pair_id }
     label 'longtime'
@@ -186,7 +180,6 @@ process run_spadesasm {
  * Map reads to the spades assembly
  */
 process run_bwamem {
-    conda "${params.condahome}/bifrost2022-bwa"
     publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
     tag { pair_id }
     label 'longtime'
@@ -212,7 +205,6 @@ process run_bwamem {
 */
 
 process run_pilon {
-    conda "${params.condahome}/bifrost2022-pilon"
     publishDir "${params.out_dir}/pilon", mode: "${params.savemode}"
     tag { pair_id }
 
@@ -239,7 +231,6 @@ process run_pilon {
 * Annotation using PROKKA
 */
 process run_prokka {
-    conda "${params.condahome}/bifrost2022-prokka"
     publishDir "${params.out_dir}/prokka", mode: "${params.savemode}"
     tag { pair_id }
 
@@ -261,10 +252,9 @@ process run_prokka {
 /*
  * Evaluate ALL assemblies with QUAST
  */
-process quast_eval {
+process run_quast {
     // The output here is a directory in and of itself
     // thus not creating a new one
-    conda "${params.condahome}/bifrost2022-quast"
     publishDir "${params.out_dir}/", mode: "${params.savemode}"
     tag { pair_id }
 
