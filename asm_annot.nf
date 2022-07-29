@@ -101,6 +101,7 @@ process run_strip {
     output:
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_bbduk_output.log"
+    file "${pair_id}_stats.txt"
 
     """
     bbduk.sh threads=$task.cpus ref=${params.stripgenome} \
@@ -109,7 +110,7 @@ process run_strip {
     outm=${pair_id}_matched.fq.gz \
     out1=${pair_id}_R1_concat_stripped.fq.gz \
     out2=${pair_id}_R2_concat_stripped.fq.gz \
-    k=31 hdist=1 stats=stats.txt &> ${pair_id}_bbduk_output.log
+    k=31 hdist=1 stats=${pair_id}_stats.txt &> ${pair_id}_bbduk_output.log
     """
 }
 
@@ -127,6 +128,7 @@ process run_trim {
     output:
     set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into reads_trimmed
     file "${pair_id}_concat_stripped_trimmed.log"
+    file "${pair_id}_run.log"
 
     """
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
@@ -193,11 +195,12 @@ process run_bwamem {
     output:
     set pair_id, file("${pair_id}_mapped_sorted.bam"), \
     file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
+    file "${pair_id}_bwa.log"
 
     """
     bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
     bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
-    *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
+    *.fq.gz 2> ${pair_id}_bwa.log| samtools sort -o ${pair_id}_mapped_sorted.bam -
     samtools index ${pair_id}_mapped_sorted.bam
     """
 }
