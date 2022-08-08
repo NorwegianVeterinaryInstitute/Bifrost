@@ -41,7 +41,7 @@ process run_fastqc {
     set pair_id, file(reads) from fastqc_reads
 
     output:
-    file "$pair_id" into fastqc_results
+    file "$pair_id" into fastqc_multiqc
 
     """
     mkdir ${pair_id}
@@ -49,21 +49,6 @@ process run_fastqc {
     """
 }
 
-process run_multiqc {
-    publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
-    tag {"multiqc"}
-    label 'one'
-
-    input:
-    file "fastqc_output/*" from fastqc_results.toSortedList()
-
-    output:
-    file "multiqc_report.html" into multiqc_report
-
-    """
-    multiqc fastqc_output
-    """
-}
 
 // if there are more than two data files, we need to cat them together
 // because spades becomes complicated with more than two files
@@ -102,6 +87,8 @@ process run_strip {
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_bbduk_output.log"
     file "${pair_id}_stats.txt"
+    file "${pair_id}*_stats.txt" into bbduk_stats_stripped_multiqc
+
 
     """
     bbduk.sh threads=$task.cpus ref=${params.stripgenome} \
@@ -126,21 +113,43 @@ process run_trim {
     set pair_id, file(reads) from reads_stripped
 
     output:
-    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into reads_trimmed
-    file "${pair_id}_concat_stripped_trimmed.log"
-    file "${pair_id}_run.log"
+    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into (reads_trimmed, fq2)
+    file "${pair_id}_stripped_trimmed_stderr.log"
+    file "${pair_id}_stripped_trimmed_stdout.log"
+    file "${pair_id}_stripped_trimmed_stderr.log" into bbduk_trimmed_multiqc 
+    
 
     """
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
     -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
     LEADING:${params.leading} TRAILING:${params.trailing} \
     SLIDINGWINDOW:${params.slidingwindow} \
-    MINLEN:${params.minlen} &> ${pair_id}_run.log
+    MINLEN:${params.minlen}  \
+    2> ${pair_id}_stripped_trimmed_stderr.log 1> ${pair_id}_stripped_trimmed_stdout.log
     mv ${pair_id}_trimmed_1P.fq.gz ${pair_id}_R1_concat_stripped_trimmed.fq.gz
     mv ${pair_id}_trimmed_2P.fq.gz ${pair_id}_R2_concat_stripped_trimmed.fq.gz
     cat ${pair_id}_trimmed_1U.fq.gz ${pair_id}_trimmed_2U.fq.gz > ${pair_id}_S_concat_stripped_trimmed.fq.gz
     """
 }
+
+process run_fastqc_trimmed {
+    publishDir "${params.out_dir}/fastqc_bbduk_trimmed", mode: "${params.savemode}"
+    tag { pair_id }
+    label 'one'
+
+    input:
+    set pair_id, file(reads) from fq2
+
+    output:
+    file "$pair_id" 
+    file "${pair_id}" into fastqc_bbduk_trimmed
+
+    """
+    mkdir ${pair_id}
+    fastqc -q ${reads} -o ${pair_id} -t $task.cpus
+    """
+}
+
 
 
 /*
@@ -244,12 +253,13 @@ process run_prokka {
 
     output:
     set pair_id, file("${pair_id}.*") into annotation_results
+    file "${pair_id}.*" into annotation_multiqc
 
     """
     prokka --compliant --force --usegenus --cpus $task.cpus \
     --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
     --genus ${params.genus} --species ${params.species} \
-    --kingdom ${params.kingdom} ${params.prokka_additional} \
+    --kingdom ${params.kingdom} --strain ${pair_id}_prokka_info ${params.prokka_additional} \
     --outdir . ${pair_id}_pilon_spades.fasta
     """
 }
@@ -269,9 +279,32 @@ process run_quast {
     //TODO: fix this, is why output is not going anywhere
     output:
     file quast_evaluation_all into quast_evaluation_all
+    file quast_evaluation_all into quast_multiqc
 
     """
     quast --threads $task.cpus -o quast_evaluation_all \
     -g ${params.quast_genes} -R ${params.quast_ref} ${asm_list}
     """
+}
+
+process run_multiqc_final {
+    publishDir "${params.out_dir}/multiqc_final", mode: "${params.savemode}"
+    tag {"multiqc"}
+    label 'one'
+
+    input:
+    file "fastqc_output/*" from fastqc_multiqc.collect()
+    file "bbduk/*" from bbduk_stats_stripped_multiqc.collect()
+    file "bbduk_trimmed/*" from bbduk_trimmed_multiqc.collect()
+    file "bbduk_trimmed_fastqc/*" from fastqc_bbduk_trimmed.collect()
+    file "prokka/*" from annotation_multiqc.collect()
+    file quast_evaluation_all from quast_multiqc
+
+    output:
+    file("*")
+
+    """
+    multiqc --fullnames --config ${params.multiqc_config} . 
+    """
+
 }
