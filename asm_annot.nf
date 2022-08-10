@@ -77,7 +77,9 @@ process collate_data {
  * Strip PhiX with bbmap
  */
 process run_strip {
-    publishDir "${params.out_dir}/bbduk", mode: "${params.savemode}"
+    publishDir "${params.out_dir}/bbduk", 
+                saveAs: {filename -> filename.endsWith('.gz') ? null:filename}, 
+                mode: "${params.savemode}"
     tag { pair_id }
 
     input:
