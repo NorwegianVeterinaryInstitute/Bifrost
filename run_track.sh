@@ -16,7 +16,7 @@ workdir=${5:-$USERWORK/bifrost_work}
 
 mkdir -p ${out_directory}/config_files
 git --git-dir ${script_directory}/.git branch -v |grep "\*" | awk '{print $2, $3}' > ${out_directory}/config_files/pipeline_version.log
-bash ${script_directory}/bin/printversions.sh profile ${out_directory}/config_files/software_versions.txt
+bash ${script_directory}/bin/printversions.sh ${profile} ${out_directory}/config_files/software_versions.txt
 cp ${script_directory}/${track_script} ${out_directory}/config_files
 cp ${template} ${out_directory}/config_files
 

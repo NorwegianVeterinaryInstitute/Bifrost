@@ -1,12 +1,12 @@
 ## This script attempts to print whatever versions we have of tools
 ## There are two scenarios, conda, and and not conda
 
-profile=$1
+STR=$1
 output_file=$2
 
-
-if [[ $profile == *"$conda"* ]];
-    then
+SUBSTR='conda'
+if [[ "$STR" == *"$SUBSTR"* ]]; then
+        echo "CONDA"
         conda list -n bifrost2022-fastqc >> ${output_file}
         conda list -n bifrost2022-multiqc >> ${output_file}
         conda list -n bifrost2022-bbtools >> ${output_file}
