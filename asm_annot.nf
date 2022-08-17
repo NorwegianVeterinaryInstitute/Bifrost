@@ -144,7 +144,7 @@ process run_fastqc_trimmed {
 
     output:
     file "$pair_id" 
-    file "${pair_id}" into fastqc_bbduk_trimmed
+    file "${pair_id}" into fastqc_bbduk_trimmed_multiqc
 
     """
     mkdir ${pair_id}
@@ -297,7 +297,7 @@ process run_multiqc_final {
     file "fastqc_output/*" from fastqc_multiqc.collect()
     file "bbduk/*" from bbduk_stats_stripped_multiqc.collect()
     file "bbduk_trimmed/*" from bbduk_trimmed_multiqc.collect()
-    file "bbduk_trimmed_fastqc/*" from fastqc_bbduk_trimmed.collect()
+    file "bbduk_trimmed_fastqc/*" from fastqc_bbduk_trimmed_multiqc.collect()
     file "prokka/*" from annotation_multiqc.collect()
     file quast_evaluation_all from quast_multiqc
 
