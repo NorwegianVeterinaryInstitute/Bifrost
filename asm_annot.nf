@@ -115,7 +115,7 @@ process run_trim {
     set pair_id, file(reads) from reads_stripped
 
     output:
-    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into (reads_trimmed, fq2)
+    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into (reads_trimmed, trimmed_fastqc)
     file "${pair_id}_stripped_trimmed_stderr.log"
     file "${pair_id}_stripped_trimmed_stdout.log"
     file "${pair_id}_stripped_trimmed_stderr.log" into bbduk_trimmed_multiqc 
@@ -140,7 +140,7 @@ process run_fastqc_trimmed {
     label 'one'
 
     input:
-    set pair_id, file(reads) from fq2
+    set pair_id, file(reads) from trimmed_fastqc
 
     output:
     file "$pair_id" 
