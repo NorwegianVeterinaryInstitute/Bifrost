@@ -89,7 +89,7 @@ process run_strip {
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_bbduk_output.log"
     file "${pair_id}_stats.txt"
-    file "${pair_id}*_stats.txt" into bbduk_stats_stripped_multiqc
+    file "${pair_id}_stats.txt" into bbduk_stats_stripped_multiqc
 
 
     """
