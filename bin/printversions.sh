@@ -6,7 +6,6 @@ output_file=$2
 
 SUBSTR='conda'
 if [[ "$STR" == *"$SUBSTR"* ]]; then
-        echo "CONDA"
         conda list -n bifrost2022-fastqc >> ${output_file}
         conda list -n bifrost2022-multiqc >> ${output_file}
         conda list -n bifrost2022-bbtools >> ${output_file}
