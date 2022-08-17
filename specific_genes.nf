@@ -59,9 +59,11 @@ process collate_data {
     set pair_id, file("${pair_id}*_concat.fq.gz") into \
       (read_pairs_mlst, read_pairs_amr, read_pairs_vir)
 
+
     """
-    cat ${pair_id}*R1* > ${pair_id}_R1_concat.fq.gz
-    cat ${pair_id}*R2* > ${pair_id}_R2_concat.fq.gz
+    shopt -s extglob
+    cat ${pair_id}*_?(R)1[_.]*.gz > ${pair_id}_R1_concat.fq.gz
+    cat ${pair_id}*_?(R)2[_.]*.gz > ${pair_id}_R2_concat.fq.gz
     """
 }
 

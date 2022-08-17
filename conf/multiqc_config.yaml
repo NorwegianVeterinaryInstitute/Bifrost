@@ -1,0 +1,7 @@
+report_comment: >
+    This MultiQC report has been generated on results from running the 
+    <a href="https://github.com/NorwegianVeterinaryInstitute/Bifrost" 
+    target="_blank" rel="noopener noreferrer">Bifrost 2022</a>
+    analysis pipeline.
+trimmomatic:
+  s_name_filenames: true
