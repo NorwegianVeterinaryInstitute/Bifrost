@@ -278,7 +278,6 @@ process run_quast {
     input:
     file asm_list from asms_for_quast.toSortedList()
 
-    //TODO: fix this, is why output is not going anywhere
     output:
     file quast_evaluation_all into quast_evaluation_all
     file quast_evaluation_all into quast_multiqc
