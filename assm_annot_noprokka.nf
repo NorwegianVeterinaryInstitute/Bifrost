@@ -12,6 +12,8 @@ else {
   version = "v0.2.0 local"
 }
 
+// TODO I need to incorporate some options for prokka here
+// Also strip genome
 
 log.info ''
 log.info "================================================="
@@ -39,7 +41,7 @@ process run_fastqc {
     set pair_id, file(reads) from fastqc_reads
 
     output:
-    file "$pair_id" into fastqc_multiqc
+    file "$pair_id" into fastqc_results
 
     """
     mkdir ${pair_id}
@@ -47,6 +49,21 @@ process run_fastqc {
     """
 }
 
+process run_multiqc {
+    publishDir "${params.out_dir}/multiqc", mode: "${params.savemode}"
+    tag {"multiqc"}
+    label 'one'
+
+    input:
+    file "fastqc_output/*" from fastqc_results.toSortedList()
+
+    output:
+    file "multiqc_report.html" into multiqc_report
+
+    """
+    multiqc fastqc_output
+    """
+}
 
 // if there are more than two data files, we need to cat them together
 // because spades becomes complicated with more than two files
@@ -62,11 +79,9 @@ process collate_data {
     output:
     set pair_id, file("${pair_id}*_concat.fq.gz") into (reads, pilon_reads)
 
-
     """
-    shopt -s extglob
-    cat ${pair_id}*_?(R)1[_.]*.gz > ${pair_id}_R1_concat.fq.gz
-    cat ${pair_id}*_?(R)2[_.]*.gz > ${pair_id}_R2_concat.fq.gz
+    cat ${pair_id}*R1* > ${pair_id}_R1_concat.fq.gz
+    cat ${pair_id}*R2* > ${pair_id}_R2_concat.fq.gz
     """
 }
 
@@ -75,9 +90,8 @@ process collate_data {
  * Strip PhiX with bbmap
  */
 process run_strip {
-    publishDir "${params.out_dir}/bbduk", 
-                saveAs: {filename -> filename.endsWith('.gz') ? null:filename}, 
-                mode: "${params.savemode}"
+
+    publishDir "${params.out_dir}/bbduk", mode: "${params.savemode}"
     tag { pair_id }
 
     input:
@@ -86,9 +100,6 @@ process run_strip {
     output:
     set pair_id, file("${pair_id}*_concat_stripped.fq.gz") into reads_stripped
     file "${pair_id}_bbduk_output.log"
-    file "${pair_id}_stats.txt"
-    file "${pair_id}_stats.txt" into bbduk_stats_stripped_multiqc
-
 
     """
     bbduk.sh threads=$task.cpus ref=${params.stripgenome} \
@@ -97,7 +108,7 @@ process run_strip {
     outm=${pair_id}_matched.fq.gz \
     out1=${pair_id}_R1_concat_stripped.fq.gz \
     out2=${pair_id}_R2_concat_stripped.fq.gz \
-    k=31 hdist=1 stats=${pair_id}_stats.txt &> ${pair_id}_bbduk_output.log
+    k=31 hdist=1 stats=stats.txt &> ${pair_id}_bbduk_output.log
     """
 }
 
@@ -113,75 +124,49 @@ process run_trim {
     set pair_id, file(reads) from reads_stripped
 
     output:
-    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into (reads_trimmed, trimmed_fastqc)
-    file "${pair_id}_stripped_trimmed_*.log"
-    file "${pair_id}_stripped_trimmed_stderr.log" into bbduk_trimmed_multiqc 
-    
+    set pair_id, file("${pair_id}*_concat_stripped_trimmed.fq.gz") into reads_trimmed
+    file "${pair_id}_concat_stripped_trimmed.log"
 
     """
     trimmomatic PE -threads $task.cpus -trimlog ${pair_id}_concat_stripped_trimmed.log ${pair_id}*_concat_stripped.fq.gz \
     -baseout ${pair_id}_trimmed.fq.gz ILLUMINACLIP:${params.adapter_dir}/${params.adapters}:${params.illuminaClipOptions} \
-    LEADING:${params.leading} TRAILING:${params.trailing} \
     SLIDINGWINDOW:${params.slidingwindow} \
-    MINLEN:${params.minlen}  \
-    2> ${pair_id}_stripped_trimmed_stderr.log 1> ${pair_id}_stripped_trimmed_stdout.log
+    LEADING:${params.leading} TRAILING:${params.trailing} \
+    MINLEN:${params.minlen} &> ${pair_id}_run.log
     mv ${pair_id}_trimmed_1P.fq.gz ${pair_id}_R1_concat_stripped_trimmed.fq.gz
     mv ${pair_id}_trimmed_2P.fq.gz ${pair_id}_R2_concat_stripped_trimmed.fq.gz
     cat ${pair_id}_trimmed_1U.fq.gz ${pair_id}_trimmed_2U.fq.gz > ${pair_id}_S_concat_stripped_trimmed.fq.gz
     """
 }
 
-process run_fastqc_trimmed {
-    publishDir "${params.out_dir}/fastqc_bbduk_trimmed", mode: "${params.savemode}"
-    tag { pair_id }
-    label 'one'
-
-    input:
-    set pair_id, file(reads) from trimmed_fastqc
-
-    output:
-    file "$pair_id" 
-    file "${pair_id}" into fastqc_bbduk_trimmed_multiqc
-
-    """
-    mkdir ${pair_id}
-    fastqc -q ${reads} -o ${pair_id} -t $task.cpus
-    """
-}
-
-
 
 /*
  * Build assembly with SPAdes
  */
 process run_spadesasm {
-    publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
-    tag { pair_id }
-    label 'longtime'
+     publishDir "${params.out_dir}/spades", mode: "${params.savemode}"
+     tag { pair_id }
+     label 'longtime'
 
-    input:
-    set pair_id, file(reads) from reads_trimmed
+     input:
+     set pair_id, file(reads) from reads_trimmed
 
-    output:
-    set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
-    into (assembly_results, tobwa_results)
-    file "${pair_id}_spades_scaffolds.fasta"
-    file "${pair_id}_spades.log"
+     output:
+     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta") \
+     into (assembly_results, tobwa_results)
+     file "${pair_id}_spades_scaffolds.fasta"
+     file "${pair_id}_spades.log"
 
-
-    // For 2022 version, params.careful was removed to do --isolate and --only-assembler
-    """
-    spades.py --cov-cutoff=${params.cov_cutoff} \
-    -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
-    -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
-    -s ${pair_id}_S_concat_stripped_trimmed.fq.gz \
-    -t $task.cpus --isolate --only-assembler \
-    -o ${pair_id}_spades
-    filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
-       -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
-       -m ${params.min_contig_len}
-    cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
-    cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
+     """
+     spades.py ${params.careful} --cov-cutoff=${params.cov_cutoff} \
+     -1 ${pair_id}_R1_concat_stripped_trimmed.fq.gz \
+     -2 ${pair_id}_R2_concat_stripped_trimmed.fq.gz \
+     -s ${pair_id}_S_concat_stripped_trimmed.fq.gz -t $task.cpus -o ${pair_id}_spades
+     filter_fasta_length.py -i ${pair_id}_spades/scaffolds.fasta \
+        -o ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
+        -m ${params.min_contig_len}
+     cp ${pair_id}_spades/scaffolds.fasta ${pair_id}_spades_scaffolds.fasta
+     cp ${pair_id}_spades/spades.log ${pair_id}_spades.log
      """
 }
 
@@ -192,25 +177,24 @@ process run_spadesasm {
  * Map reads to the spades assembly
  */
 process run_bwamem {
-    publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
-    tag { pair_id }
-    label 'longtime'
+     publishDir "${params.out_dir}/bwamem", mode: "${params.savemode}"
+     tag { pair_id }
+     label 'longtime'
 
-    input:
-    set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta"), \
-    file(reads) from tobwa_results.join(pilon_reads)
+     input:
+     set pair_id, file("${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta"), \
+     file(reads) from tobwa_results.join(pilon_reads)
 
-    output:
-    set pair_id, file("${pair_id}_mapped_sorted.bam"), \
-    file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
-    file "${pair_id}_bwa.log"
+     output:
+     set pair_id, file("${pair_id}_mapped_sorted.bam"), \
+     file("${pair_id}_mapped_sorted.bam.bai") into bwamem_results
 
-    """
-    bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
-    bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
-    *.fq.gz 2> ${pair_id}_bwa.log| samtools sort -o ${pair_id}_mapped_sorted.bam -
-    samtools index ${pair_id}_mapped_sorted.bam
-    """
+     """
+     bwa index ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta
+     bwa mem -t $task.cpus  ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
+     *.fq.gz | samtools sort -o ${pair_id}_mapped_sorted.bam -
+     samtools index ${pair_id}_mapped_sorted.bam
+     """
 }
 
 /*
@@ -220,6 +204,7 @@ process run_bwamem {
 process run_pilon {
     publishDir "${params.out_dir}/pilon", mode: "${params.savemode}"
     tag { pair_id }
+    label 'longtime'
 
     input:
     set pair_id, file("${pair_id}_mapped_sorted.bam"), \
@@ -242,7 +227,7 @@ process run_pilon {
 /*
  * Evaluate ALL assemblies with QUAST
  */
-process run_quast {
+process quast_eval {
     // The output here is a directory in and of itself
     // thus not creating a new one
     publishDir "${params.out_dir}/", mode: "${params.savemode}"
@@ -251,33 +236,12 @@ process run_quast {
     input:
     file asm_list from asms_for_quast.toSortedList()
 
+    //TODO: fix this, is why output is not going anywhere
     output:
     file quast_evaluation_all into quast_evaluation_all
-    file quast_evaluation_all into quast_multiqc
 
     """
     quast --threads $task.cpus -o quast_evaluation_all \
     -g ${params.quast_genes} -R ${params.quast_ref} ${asm_list}
     """
-}
-
-process run_multiqc_final {
-    publishDir "${params.out_dir}/multiqc_final", mode: "${params.savemode}"
-    tag {"multiqc"}
-    label 'one'
-
-    input:
-    file "fastqc_output/*" from fastqc_multiqc.collect()
-    file "bbduk/*" from bbduk_stats_stripped_multiqc.collect()
-    file "bbduk_trimmed/*" from bbduk_trimmed_multiqc.collect()
-    file "bbduk_trimmed_fastqc/*" from fastqc_bbduk_trimmed_multiqc.collect()
-    file quast_evaluation_all from quast_multiqc
-
-    output:
-    file("*")
-
-    """
-    multiqc --fullnames --config ${params.multiqc_config} . 
-    """
-
 }
