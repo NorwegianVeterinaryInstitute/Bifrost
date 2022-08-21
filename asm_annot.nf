@@ -12,8 +12,6 @@ else {
   version = "v0.2.0 local"
 }
 
-// TODO I need to incorporate some options for prokka here
-// Also strip genome
 
 log.info ''
 log.info "================================================="
@@ -231,7 +229,6 @@ process run_pilon {
 
     output:
     set pair_id, file("${pair_id}_pilon_spades.*") into pilon_results
-    set pair_id, file("${pair_id}_pilon_spades.fasta") into to_prokka
     file "${pair_id}_pilon_spades.fasta" into asms_for_quast
 
     """
@@ -239,29 +236,6 @@ process run_pilon {
     pilon --threads $task.cpus --genome ${pair_id}_spades_scaffolds_min${params.min_contig_len}.fasta \
     --bam ${pair_id}_mapped_sorted.bam --output ${pair_id}_pilon_spades \
     --changes --vcfqe &> ${pair_id}_pilon_spades.log
-    """
-}
-
-/*
-* Annotation using PROKKA
-*/
-process run_prokka {
-    publishDir "${params.out_dir}/prokka", mode: "${params.savemode}"
-    tag { pair_id }
-
-    input:
-    set pair_id, file("${pair_id}_pilon_spades.fasta") from to_prokka
-
-    output:
-    set pair_id, file("${pair_id}.*") into annotation_results
-    file "${pair_id}.*" into annotation_multiqc
-
-    """
-    prokka --compliant --force --usegenus --cpus $task.cpus \
-    --centre ${params.centre} --prefix ${pair_id} --locustag ${params.locustag} \
-    --genus ${params.genus} --species ${params.species} \
-    --kingdom ${params.kingdom} --strain ${pair_id}_prokka_info ${params.prokka_additional} \
-    --outdir . ${pair_id}_pilon_spades.fasta
     """
 }
 
@@ -297,7 +271,6 @@ process run_multiqc_final {
     file "bbduk/*" from bbduk_stats_stripped_multiqc.collect()
     file "bbduk_trimmed/*" from bbduk_trimmed_multiqc.collect()
     file "bbduk_trimmed_fastqc/*" from fastqc_bbduk_trimmed_multiqc.collect()
-    file "prokka/*" from annotation_multiqc.collect()
     file quast_evaluation_all from quast_multiqc
 
     output:
