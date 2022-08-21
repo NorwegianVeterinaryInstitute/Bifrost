@@ -13,7 +13,6 @@ if [[ "$STR" == *"$SUBSTR"* ]]; then
         conda list -n bifrost2022-spades >> ${output_file}
         conda list -n bifrost2022-bwa >> ${output_file}
         conda list -n bifrost2022-pilon >> ${output_file}
-        conda list -n bifrost2022-prokka >> ${output_file}
         conda list -n bifrost2022-quast >> ${output_file}
         conda list -n bifrost2022-ariba >> ${output_file}
 
@@ -28,7 +27,6 @@ if [[ "$STR" == *"$SUBSTR"* ]]; then
         rm tmpfile
         samtools --version |head  -1 >> ${output_file}
         pilon --version >> ${output_file} 
-        prokka -v >> ${output_file}
         quast -v >> ${output_file}
         ariba version |head -1 >> ${output_file}
 
