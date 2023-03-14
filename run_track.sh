@@ -25,5 +25,5 @@ cp ${template} ${out_directory}/config_files
 
 
 echo "TEMPORARY WORKING DIRECTORY IS ${workdir}"
-nextflow -c ${template} run -resume ${script_directory}/${track_script} \
+nextflow_19.10.0 -c ${template} run -resume ${script_directory}/${track_script} \
 -profile ${profile} --out_dir=${out_directory} -work-dir ${workdir} -with-report ${now}_run_report.html
